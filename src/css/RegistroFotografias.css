@@ -1,0 +1,119 @@
+/*----------Main, contenedor y asi-------------*/
+.main_registro_fotografia {
+    background-image: url(../../public/img/fondo2.jpg);
+    height: 100%;
+    min-height: 600px;
+    display: flex;
+    justify-content: center;
+    border-top: 4px solid #800;
+  
+  }
+  .contenedor_registro_fotografia{
+    max-width: 95%;
+    min-width: 95%;
+    padding: 20px;
+    height: 2000px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    text-align: left;
+  
+  }
+  .contenedor_registro_fotografia h2{
+    text-align: center;
+    font-size: 40px;
+    color: #0672A8;
+  }
+  .contenedor_registro_fotografia h1{
+    color: #0672A8;
+  }
+
+
+
+  .divisor_form_fotografia_1{
+    clear: both;
+    color: #0672A8;
+    width: 100%;
+    height: 750px;
+  }
+  #titulo_fotografia{
+    max-width: 100%;
+    min-width: 100%;
+    margin-left: 5px;
+  }
+  #titulo_fotografia input{
+    max-width: 92%;
+    min-width: 92%;
+  }
+  #numero_fotografia{
+    display: block;
+    float: left;
+    max-width: 20%;
+    min-width: 20%;
+  
+  }
+#numero_fotografia label{
+    margin-right: 10px;
+}
+#numero_fotografia input{
+padding: 10px;
+box-sizing: border-box;
+border: 1px solid #ccc;
+border-radius: 4px;
+max-width: 70px;
+min-width: 70px;
+
+}
+#fecha_fotografia{
+    max-width: 20%;
+    min-width: 20%;
+    display: block;
+    float: left;
+}
+#fecha_fotografia input{
+display: block;
+float: left;
+max-width: 200px;
+min-width: 200px;
+}
+#formato_fotografia{
+    max-width: 20%;
+    min-width: 20%;
+    margin-left: 5px;
+}
+#formato_fotografia input{
+    max-width: 70%;
+    min-width: 70%;
+}
+#camara_fotografia{
+    max-width: 20%;
+    min-width: 20%;
+    margin-left: 5px;
+}
+#camara_fotografia input{
+    max-width: 70%;
+    min-width: 70%;
+}
+#imagenes_fotografia{
+
+    margin-left: 0%;
+    margin-right: 10px;
+}
+#imagenes_fotografia input{
+    width: 200px;
+}
+#edicion_fotografia{
+    padding-bottom: 5px;
+}
+#edicion_fotografia select{
+    padding: 0px;
+    padding-bottom: 9px;
+    padding-top: 9px;
+    max-width: 70px;
+    min-width: 70px;
+}
+#pdf_fotografia{
+    margin-right: 55px;
+    float: right;
+}

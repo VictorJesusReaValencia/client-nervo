@@ -1,0 +1,228 @@
+.divisor_form_documentacion_1{
+    clear: both;
+    color: #0672A8;
+    width: 100%;
+    height: 300px;
+
+}
+
+#titulo_documentacion{
+    margin-top: 40px;
+    max-width:  50%;
+    min-width:  50%;
+    height: 50px;
+    margin-right: 15px;
+}
+#titulo_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#titulo_documentacion input{
+    max-width:  88%;
+    min-width:  88%;
+}
+#tipo_documentacion{
+    margin-top: 40px;
+    max-width:  30%;
+    min-width:  30%;
+    height: 50px;
+    margin-right: 15px;
+}
+#tipo_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#tipo_documentacion input{
+    max-width:  80%;
+    min-width:  80%;
+}
+#fecha_corresponencia_documentacion {
+    max-width: 150px;
+    min-width: 150px;
+    display: block;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-left: 20px;
+    margin-right: 20px;
+    text-align: center;
+}
+#fecha_corresponencia_documentacion label {
+    margin-left: 15px;
+    text-align: center;
+}
+
+#fecha_corresponencia_documentacion input{
+    max-width: 150px;
+    min-width: 150px;
+    padding-left: 10px;
+    margin-top: 5px; /* Add some margin to separate the input from the label */
+  }
+#lugar_emision_documentacion{
+
+    max-width:  25%;
+    min-width:  25%;
+    height: 50px;
+    margin-right: 15px;
+}
+#lugar_emision_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#lugar_emision_documentacion input{
+    max-width:  75%;
+    min-width:  75%;
+}
+#institucion_emision_documentacion{
+
+    max-width:  30%;
+    min-width:  30%;
+    height: 50px;
+    margin-right: 15px;
+}
+#institucion_emision_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#institucion_emision_documentacion input{
+    max-width:  69%;
+    min-width:  69%;
+}
+#emisior_documentacion{
+
+    max-width:  26%;
+    min-width:  26%;
+    height: 50px;
+    margin-right: 15px;
+}
+#emisior_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#emisior_documentacion input{
+    max-width:  75%;
+    min-width:  75%;
+}
+
+#fecha_emision_documentacion {
+    max-width: 150px;
+    min-width: 150px;
+    display: block;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-left: 20px;
+    margin-right: 20px;
+    text-align: center;
+}
+#fecha_emision_documentacion label {
+    margin-left: 15px;
+    text-align: center;
+    font-size: 18px;
+    margin: 0px auto;
+}
+
+#fecha_emision_documentacion input{
+    max-width: 150px;
+    min-width: 150px;
+    padding-left: 10px;
+    margin-top: 5px; /* Add some margin to separate the input from the label */
+  }
+  #destinatario_documentacion{
+    margin-top: 20px;
+    max-width:  35%;
+    min-width:  35%;
+    height: 50px;
+    margin-right: 15px;
+}
+#destinatario_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#destinatario_documentacion input{
+    max-width:  70%;
+    min-width:  70%;
+}
+.divisor_form_documentacion_2{
+    clear: both;
+    color: #0672A8;
+    width: 100%;
+    height: 200px;
+}
+#notas_documentacion{
+    margin-top: 20px;
+    max-width:  30%;
+    min-width:  30%;
+    height: 50px;
+    margin-right: 15px;
+}
+#notas_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#notas_documentacion input{
+    max-width:  80%;
+    min-width:  80%;
+}
+#numero_documentacion{
+    max-width: 200px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0px;
+    text-align: center;
+}
+  
+#numero_documentacion label{
+    margin: 0px auto;
+}
+#numero_documentacion Input{
+    display: block;
+    float: left;
+    max-width: 40%;
+    min-width: 40%;
+    padding-left: 10px;
+    margin-top: 5px; /* Add some margin to separate the input from the label */
+}
+
+  .divisor_form_documentacion_3{
+    clear: both;
+    color: #0672A8;
+    width: 100%;
+    height: 250px;
+
+}
+#persona_registra_documentacion{
+    margin-top: 0px;
+    max-width: 40%;
+    min-width:  40%;
+    height: 50px;
+    margin-right: 15px;
+   
+}
+#persona_registra_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#persona_registra_documentacion input{
+    max-width:  60%;
+    min-width:  60%;
+}
+#ubicacion_fisica_documentacion{
+    margin-top: 0px;
+    max-width: 28%;
+    min-width:  28%;
+    height: 50px;
+
+   
+}
+#ubicacion_fisica_documentacion label{
+    padding-bottom: 5px;
+    margin-right: 3px;
+}
+#ubicacion_fisica_documentacion input{
+    max-width:  60%;
+    min-width:  60%;
+}
