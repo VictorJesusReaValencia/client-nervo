@@ -6,32 +6,33 @@ import { useState, useEffect } from 'react';
 
 export const RegPartituras = () => {
     const { formulario, enviado, cambiado, resetFormulario } = useForm({})
-    const [resultado, setResultado] = useState(false)
-    const [fileName, setFileName] = useState('');
+    //----------------------------------Paises, ciudades e instituciones ----------------------------------//
+    const [data, setData] = useState(null);
     const [paises, setPaises] = useState([]);
     const [ciudades, setCiudades] = useState([]);
     const [instituciones, setInstituciones] = useState([]);
     const [selectedPais, setSelectedPais] = useState('');
     const [selectedCiudad, setSelectedCiudad] = useState('');
-    const [saved, setSaved] = useState('not sended');
-    const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
-    const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
-    const [loadingProgress, setLoadingProgress] = useState(0);
-    const [data, setData] = useState(null);
-    const [showModal, setShowModal] = useState(false);
-    const [customPromptText, setCustomPromptText] = useState('');
-    const [currentField, setCurrentField] = useState('');
-    const [originalPrompt, setOriginalPrompt] = useState('');
+    //----------------------------------Formulario y sugerencias ----------------------------------//
     const [selectedImages, setSelectedImages] = useState([]);
     const [pdfUrls, setPdfUrls] = useState([]);
     const [value, setValue] = useState('');
     const [sugerencias, setSugerencias] = useState([]);
     const [fieldName, setFieldName] = useState('');
+    //----------------------------------Guardar y enviar ----------------------------------//
+    const [resultado, setResultado] = useState(false)
+    const [fileName, setFileName] = useState('');
+    const [saved, setSaved] = useState('not sended');
+    const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
+    const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
+    const [loadingProgress, setLoadingProgress] = useState(0);
 
-  
+
+    // Este useEffect se encarga de obtener los datos de las instituciones para la parte final del formulario
+    // Se hace la peticion la la API y se guardan los datos en data y el primer cammpo en los paises para su seleccion ene l formulario
     useEffect(() => {
         const fetchData = async () => {
-            const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
+            const url = `http://localhost:3900/api/instituciones/listar/todo`;
             try {
                 const response = await fetch(url, {
                     method: "GET"
@@ -50,6 +51,59 @@ export const RegPartituras = () => {
         };
         fetchData();
     }, []);
+    // Al modificar el campo pais, se actualizan las ciudades y se selecciona la primera si solo hay una
+    useEffect(() => {
+
+        if (formulario.pais) {
+            const ciudades = Object.keys(data[formulario.pais]);
+            setCiudades(ciudades);
+            if (ciudades.length === 1) {
+                setSelectedCiudad(ciudades[0]);
+
+            } else {
+                setSelectedCiudad('');
+                setInstituciones([]);
+            }
+        }
+    }, [formulario.pais]);
+    // Una vez seleccionado el pais y la ciudad, se cargan las instituciones correspondientes a la ciudad
+    useEffect(() => {
+        if (formulario.ciudad && formulario.pais) {
+            const instituciones = data[formulario.pais][formulario.ciudad];
+            setInstituciones(instituciones);
+        }
+    }, [formulario.ciudad]);
+
+
+    // Obtiene las sugerencias de autocompletado desde la API cuando el valor del input cambia y tiene mas de 1 caracter
+    useEffect(() => {
+        if (value.length > 1 && fieldName) {
+            const fetchSugerencias = async () => {
+                try {
+                    const response = await fetch(`http://localhost:3900/api/partituras/search?query=${value}&campo=${fieldName}`);
+                    if (!response.ok) {
+                        throw new Error('Error fetching suggestions');
+                    }
+                    const data = await response.json();
+                    setSugerencias(data);
+                } catch (err) {
+                    console.error('Error fetching suggestions:', err);
+                }
+            };
+
+            fetchSugerencias();
+        } else {
+            setSugerencias([]);
+        }
+    }, [value, fieldName]);
+    // NO se que hace
+    useEffect(() => {
+        return () => {
+            // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
+            pdfUrls.forEach(url => URL.revokeObjectURL(url));
+        };
+    }, [pdfUrls]);
+    // Aqui manejamos el estado del formlario, reiniciamos la barra de progreso y los mensajes de error dependiendo de cada peticion
     useEffect(() => {
         setSaved("")
         setLoadingProgress(0);
@@ -66,55 +120,9 @@ export const RegPartituras = () => {
             mensaje4: ''
         });
     }, [formulario])
-    useEffect(() => {
-
-        if (formulario.pais) {
-            const ciudades = Object.keys(data[formulario.pais]);
-            setCiudades(ciudades);
-            if (ciudades.length === 1) {
-                setSelectedCiudad(ciudades[0]);
-
-            } else {
-                setSelectedCiudad('');
-                setInstituciones([]);
-            }
-        }
-    }, [formulario.pais]);
-    useEffect(() => {
-        if (formulario.ciudad && formulario.pais) {
-            const instituciones = data[formulario.pais][formulario.ciudad];
-            setInstituciones(instituciones);
-        }
-    }, [formulario.ciudad]);
-    useEffect(() => {
-        return () => {
-            // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
-            pdfUrls.forEach(url => URL.revokeObjectURL(url));
-        };
-    }, [pdfUrls]);
-    useEffect(() => {
-        if (value.length > 1 && fieldName) {
-            const fetchSugerencias = async () => {
-                try {
-                    const response = await fetch(`https://backend-prueba-apel.onrender.com/api/partituras/search?query=${value}&campo=${fieldName}`);
-                    if (!response.ok) {
-                        throw new Error('Error fetching suggestions');
-                    }
-                    const data = await response.json();
-                    setSugerencias(data);
-                } catch (err) {
-                    console.error('Error fetching suggestions:', err);
-                }
-            };
-
-            fetchSugerencias();
-        } else {
-            setSugerencias([]);
-        }
-    }, [value, fieldName]);
 
     const handleSelect = (sugerencia) => {
-        const e = { target:{name:fieldName, value:sugerencia}}
+        const e = { target: { name: fieldName, value: sugerencia } }
         if (fieldName) {
             cambiado(e);
             setSugerencias([]);
@@ -124,28 +132,28 @@ export const RegPartituras = () => {
     };
 
     const handleChange = (e) => {
-        
+
         if (!e || !e.target) {
             console.error("El evento o el target están indefinidos:", e);
             return;
         }
-    
-        const  name = e.target.name;
+
+        const name = e.target.name;
         const value = e.target.value
         setValue(value); // Actualizar el valor del input
         setFieldName(name); // Guardar el nombre del campo para el autocompletado
         cambiado(e); // Actualizar el estado del formulario
     };
-    
+
     const guardar_foto = async (e) => {
         e.preventDefault();
         let nueva_foto = formulario;
-        const { datos } = await Api("https://backend-prueba-apel.onrender.com/api/partituras/registrar", "POST", nueva_foto);
+        const { datos } = await Api("http://localhost:3900/api/partituras/registrar", "POST", nueva_foto);
         setLoadingProgress(25); // Incrementa el progreso
         setStatuses(prev => ({ ...prev, peticion1: datos.status }));
         setMensajes(prev => ({ ...prev, mensaje1: datos.mensaje }));
 
-        if (datos.status === "successs") {
+        if (datos.status === "success") {
             //   console.log("status success")
             const fileInput = document.querySelector("#file");
             const formData = new FormData();
@@ -153,12 +161,12 @@ export const RegPartituras = () => {
                 formData.append(`files`, file);
             });
             // console.log("formdata",formData)
-            const subida2 = await Api(`https://backend-prueba-apel.onrender.com/api/partituras/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
+            const subida2 = await Api(`http://localhost:3900/api/partituras/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
             setLoadingProgress(50); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion2: subida2.datos.status }));
             setMensajes(prev => ({ ...prev, mensaje2: subida2.datos.message }));
 
-            const subida = await Api(`https://backend-google-fnsu.onrender.com/api/partituras/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
+            const subida = await Api(`http://localhost:3900/api/partituras/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
             setLoadingProgress(75); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion3: subida.datos.status }));
             setMensajes(prev => ({ ...prev, mensaje3: subida.datos.message }));
@@ -170,7 +178,7 @@ export const RegPartituras = () => {
             });
 
             //const { pdfSubida } = await Api(`https://backend-prueba-apel.onrender.com/api/partituras/registrar-pdf/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
-            const pdfSubida2 = await Api(`https://backend-google-fnsu.onrender.com/api/partituras/registrar-pdf/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
+            const pdfSubida2 = await Api(`http://localhost:3900/api/partituras/registrar-pdf/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
             setLoadingProgress(100); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion4: pdfSubida2.datos.status }));
             setMensajes(prev => ({ ...prev, mensaje4: pdfSubida2.datos.message }));
@@ -217,16 +225,6 @@ export const RegPartituras = () => {
             alert("Por favor selecciona una imagen primero.");
         }
     };
-    const handleEditPromptAndAutoComplete = async (field, prompt) => {
-        setCurrentField(field);
-        setOriginalPrompt(prompt);
-        setCustomPromptText(prompt);
-        setShowModal(true);
-    };
-    const handleModalSubmit = () => {
-        handleAutoComplete(currentField, customPromptText);
-        setShowModal(false);
-    };
     const handleImageChange = (e) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files).map((file) => URL.createObjectURL(file));
@@ -248,11 +246,11 @@ export const RegPartituras = () => {
                 <div className='contenedor_registro_monumentos'>
 
                     <h1>Formulario de registro de Partituras</h1>
- 
+
                     <form onSubmit={guardar_foto}>
- 
+
                         <div className='divisor_form_hemerografia_1'>
-                        
+
                             <div className="form-group" id="nombrePeriodico">
                                 <label htmlFor="nombrePeriodico">Instrumento</label>
                                 <select
@@ -266,7 +264,7 @@ export const RegPartituras = () => {
                                     <option value="Postal">Postal</option>
                                     <option value="Telegrama">Telegrama</option>
                                     <option value="Tarjeta">Tarjeta</option>
-                                    
+
                                 </select>
                             </div>
 
@@ -274,15 +272,15 @@ export const RegPartituras = () => {
                                 <label>genero :</label>
                                 <input type="text" className='autor' name="genero" placeholder="Autor" value={formulario.genero || ''} onChange={cambiado} />
                             </div>
-                            
+
                             <div className="form-group" id="FechaPublicacion">
-                            <label id='fecha_publicacionLabel'>Duración</label>
-                            <input
-                                type="text"
-                                name="duracion"
-                                value={formulario.duracion}
-                                onChange={cambiado}
-                            />
+                                <label id='fecha_publicacionLabel'>Duración</label>
+                                <input
+                                    type="text"
+                                    name="duracion"
+                                    value={formulario.duracion}
+                                    onChange={cambiado}
+                                />
                             </div>
                             <div className="form-group" id='columnas' >
                                 <label htmlFor="columnas">Clave musical</label>
@@ -296,17 +294,17 @@ export const RegPartituras = () => {
                                 />
                             </div>
                             <div className="form-group" id="FechaPublicacion">
-                            <label id='fecha_publicacionLabel'>Número de páginas</label>
-                            <input
-                                type="number"
-                                name="numero_paginas"
-                                value={formulario.numero_paginas}
-                                onChange={cambiado}
-                            />
+                                <label id='fecha_publicacionLabel'>Número de páginas</label>
+                                <input
+                                    type="number"
+                                    name="numero_paginas"
+                                    value={formulario.numero_paginas}
+                                    onChange={cambiado}
+                                />
                             </div>
 
 
-                           
+
                             <div className="form-group" id='columnas' >
                                 <label htmlFor="columnas">Editorial</label>
                                 <input
@@ -337,7 +335,7 @@ export const RegPartituras = () => {
                                 </select>
                             </div>
 
-                            
+
                             <div className="form-group" id="seccion">
                                 <label htmlFor="seccion">Descripción</label>
                                 <input
@@ -351,9 +349,9 @@ export const RegPartituras = () => {
                             </div>
 
 
-                         
-                        
-                            
+
+
+
 
                             <div className="form-group" id="numeroEdicion">
                                 <label htmlFor="numeroEdicion">Número de registro</label>
@@ -376,18 +374,18 @@ export const RegPartituras = () => {
                                     onChange={cambiado}
                                 />
                             </div>
-                         
+
                             <div className="form-group">
                                 <label>Título</label>
-                                <input id='encabezado' type="textarea" name="titulo" placeholder="Título" value={formulario.titulo|| ''} onChange={cambiado} />
+                                <input id='encabezado' type="textarea" name="titulo" placeholder="Título" value={formulario.titulo || ''} onChange={cambiado} />
                             </div>
 
-                            
-                            
+
+
                         </div>
-                            <div className='divisor_form_hemerografia_1'>
-                           
-                           
+                        <div className='divisor_form_hemerografia_1'>
+
+
                             <div className='form-group' id='imagenes_hemerografia'>
                                 <label htmlFor='file0'>Imágenes: </label>
                                 <input type='file' onChange={handleImageChange} name='file0' id="file" multiple />
@@ -411,11 +409,6 @@ export const RegPartituras = () => {
                             <div className="form-group" id="resumen_hemerografia">
                                 <p id='resumen_hemerografia_p'>Resumen:</p>
 
-                                <div className='botonesIA_resumen_hemerografia'>
-
-                                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                                </div>
 
                                 <textarea
                                     type="text"
@@ -440,14 +433,6 @@ export const RegPartituras = () => {
                             <div className='divisor_form_objetos_1'>
                                 <div className="form-group" id="transcripcion_hemerografia">
                                     <p>Transcripciòn</p>
-                                    <div className='botonesIA_resumen_hemerografia'>
-
-                                        <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-                                        <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-
-
-
-                                    </div>
                                     <textarea
                                         type="text"
                                         id="transcripcionInput2"
@@ -456,128 +441,128 @@ export const RegPartituras = () => {
                                         onChange={cambiado}
                                     />
                                 </div>
-                      
 
-                                   <div className="form-group">
-                                <label>País:</label>
-                                <select
-                                    id="pais"
-                                    name='pais'
-                                    value={formulario.pais || ''}
-                                    onChange={cambiado}>
 
-                                    <option value="">Seleccionar país</option>
-                                    {paises.map((pais) => (
-                                        <option key={pais} name="paises" value={pais}>
-                                            {pais}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                                <div className="form-group">
+                                    <label>País:</label>
+                                    <select
+                                        id="pais"
+                                        name='pais'
+                                        value={formulario.pais || ''}
+                                        onChange={cambiado}>
 
-                            <div className="form-group">
-                                <label>Ciudad:</label>
-                                <select
-                                    id="ciudad"
-                                    name="ciudad"
-                                    value={formulario.ciudad || ''}
-                                    onChange={cambiado}
-                                >
-                                    <option value="">Seleccionar ciudad</option>
-                                    {ciudades.map((ciudad) => (
-                                        <option key={ciudad} value={ciudad}>
-                                            {ciudad}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Institución:</label>
-                                <select id="institucion" name='institucion' value={formulario.institucion || ""} onChange={cambiado}>
-                                    <option value="">Seleccionar institución</option>
-                                    {instituciones.map((institucion, index) => (
-                                        <option key={index} value={institucion}>
-                                            {institucion}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                    
-                            <div className="form-group" id='ubicacion_fisica_documentacion'>
-                                <label>Ubicación física:</label>
-                                <input type='text' name="ubicacion_fisica" value={formulario.ubicacion_fisica || ''} onChange={handleChange}>
-                        
-                                </input>
-                                {(sugerencias.length > 0 && fieldName === "ubicacion_fisica") && (
-                                    <ul className="sugerencias-list">
-                                        {sugerencias.map((sugerencia, index) => (
-                                            <li key={index} onClick={() => handleSelect(sugerencia)}>
-                                                {sugerencia}
-                                            </li>
+                                        <option value="">Seleccionar país</option>
+                                        {paises.map((pais) => (
+                                            <option key={pais} name="paises" value={pais}>
+                                                {pais}
+                                            </option>
                                         ))}
-                                    </ul>
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Ciudad:</label>
+                                    <select
+                                        id="ciudad"
+                                        name="ciudad"
+                                        value={formulario.ciudad || ''}
+                                        onChange={cambiado}
+                                    >
+                                        <option value="">Seleccionar ciudad</option>
+                                        {ciudades.map((ciudad) => (
+                                            <option key={ciudad} value={ciudad}>
+                                                {ciudad}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Institución:</label>
+                                    <select id="institucion" name='institucion' value={formulario.institucion || ""} onChange={cambiado}>
+                                        <option value="">Seleccionar institución</option>
+                                        {instituciones.map((institucion, index) => (
+                                            <option key={index} value={institucion}>
+                                                {institucion}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group" id='ubicacion_fisica_documentacion'>
+                                    <label>Ubicación física:</label>
+                                    <input type='text' name="ubicacion_fisica" value={formulario.ubicacion_fisica || ''} onChange={handleChange}>
+
+                                    </input>
+                                    {(sugerencias.length > 0 && fieldName === "ubicacion_fisica") && (
+                                        <ul className="sugerencias-list">
+                                            {sugerencias.map((sugerencia, index) => (
+                                                <li key={index} onClick={() => handleSelect(sugerencia)}>
+                                                    {sugerencia}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
-                            </div>
-                            <div className="form-group" id='coleccion_hemerografia'>
-                                <label>Colección:</label>
-                                {(sugerencias.length > 0 && fieldName === "coleccion") && (
-            <ul className="sugerencias-list">
-                {sugerencias.map((sugerencia, index) => (
-                    <li key={index} onClick={() => handleSelect(sugerencia)}>
-                        {sugerencia}
-                    </li>
-                ))}
-            </ul>
-            )}
-                                <input type='text' name="coleccion" value={formulario.coleccion || ''} onChange={handleChange}>
-                                {/*
+                                </div>
+                                <div className="form-group" id='coleccion_hemerografia'>
+                                    <label>Colección:</label>
+                                    {(sugerencias.length > 0 && fieldName === "coleccion") && (
+                                        <ul className="sugerencias-list">
+                                            {sugerencias.map((sugerencia, index) => (
+                                                <li key={index} onClick={() => handleSelect(sugerencia)}>
+                                                    {sugerencia}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    <input type='text' name="coleccion" value={formulario.coleccion || ''} onChange={handleChange}>
+                                        {/*
                                              <option value="">Seleccionar la colección</option>
                                     <option value="Privada">Privada</option>
                                     <option value="Pública">Pública</option>
                                 */}
-                       
-                                </input>
-                            </div>
-                            <div className="form-group">
-                                <label>Año de adquisición:</label>
-                                <select id='adq' name="fecha_adquisicion" value={formulario.fecha_adquisicion || ''} onChange={cambiado} >
-                                    <option value="">Seleccionar año</option>
-                                    <option value="2020">2020</option>
-                                    <option value="2019">2019</option>
-                                    <option value="2018">2018</option>
-                                    <option value="2017">2017</option>
-                                    <option value="2016">2016</option>
-                                    <option value="2015">2015</option>
-                                    <option value="2014">2014</option>
-                                    <option value="2013">2013</option>
-                                    <option value="2012">2012</option>
-                                    <option value="2011">2011</option>
-                                    <option value="2010">2010</option>
-                                    <option value="2009">2009</option>
-                                    <option value="2008">2008</option>
-                                    <option value="2007">2007</option>
-                                    <option value="2006">2006</option>
-                                    <option value="2005">2005</option>
-                                    <option value="2004">2004</option>
-                                    <option value="2003">2003</option>
-                                    <option value="2002">2002</option>
 
-                                </select>
-                            </div>
-                            <div className="form-group" id='tema_hemerografia'>
-                                <label>Tema:</label>
-                                {(sugerencias.length > 0 && fieldName === "tema") && (
-                                    <ul className="sugerencias-list">
-                                        {sugerencias.map((sugerencia, index) => (
-                                            <li key={index} onClick={() => handleSelect(sugerencia)}>
-                                                {sugerencia}
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    </input>
+                                </div>
+                                <div className="form-group">
+                                    <label>Año de adquisición:</label>
+                                    <select id='adq' name="fecha_adquisicion" value={formulario.fecha_adquisicion || ''} onChange={cambiado} >
+                                        <option value="">Seleccionar año</option>
+                                        <option value="2020">2020</option>
+                                        <option value="2019">2019</option>
+                                        <option value="2018">2018</option>
+                                        <option value="2017">2017</option>
+                                        <option value="2016">2016</option>
+                                        <option value="2015">2015</option>
+                                        <option value="2014">2014</option>
+                                        <option value="2013">2013</option>
+                                        <option value="2012">2012</option>
+                                        <option value="2011">2011</option>
+                                        <option value="2010">2010</option>
+                                        <option value="2009">2009</option>
+                                        <option value="2008">2008</option>
+                                        <option value="2007">2007</option>
+                                        <option value="2006">2006</option>
+                                        <option value="2005">2005</option>
+                                        <option value="2004">2004</option>
+                                        <option value="2003">2003</option>
+                                        <option value="2002">2002</option>
+
+                                    </select>
+                                </div>
+                                <div className="form-group" id='tema_hemerografia'>
+                                    <label>Tema:</label>
+                                    {(sugerencias.length > 0 && fieldName === "tema") && (
+                                        <ul className="sugerencias-list">
+                                            {sugerencias.map((sugerencia, index) => (
+                                                <li key={index} onClick={() => handleSelect(sugerencia)}>
+                                                    {sugerencia}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
-                                     <input type='text' name="tema" value={formulario.tema || ''} onChange={handleChange}>
-                                    {/*
+                                    <input type='text' name="tema" value={formulario.tema || ''} onChange={handleChange}>
+                                        {/*
                                        
                                     <option value="">Seleccionar el tema</option>
                                     <option value="El Nacional">El Nacional</option>
@@ -598,52 +583,52 @@ export const RegPartituras = () => {
                                     <option value="México Libre">México Libre</option>
                                     <option value="Recortes de prensa">Recortes de prensa</option>
                                     */}
-                            
-                                </input>
-                            </div>
-                           
-                           
-                            <div className="form-group" id='hallazgo_deocumentacion'>
-                                <label>Hallazgo:</label>
-                                <select id='hallazgo' name="hallazgo" value={formulario.hallazgo || ''} onChange={cambiado}>
-                                    <option value="No">No</option>
-                                    <option value="Sí">Sí</option>
-                                </select>
-                            </div>
 
-                            <div className="form-group" id='edicion_hemerografia'>
-                                <label>Mostrar:</label>
-                                <select id='hallazgo' name="mostrar" value={formulario.mostrar || ''} onChange={cambiado}>
-                                    <option value="No">No</option>
-                                    <option value="Sí">Sí</option>
-                                </select>
-                            </div>
-                            <div className="form-group" id='edicion_hemerografia' >
-                                <label>Revisado:</label>
-                                <select id='hallazgo' name="revisado" value={formulario.revisado || ''} onChange={cambiado}>
-                                    <option value="No">No</option>
-                                    <option value="Sí">Sí</option>
-                                </select>
-                            </div>
+                                    </input>
+                                </div>
 
-                            <div className="form-group" id='persona_registra_documentacion'>
-                                <label>Persona que registra:</label>
-                                <input type='text' name="persona_registra" value={formulario.persona_registra || ''} onChange={handleChange}>
-                                </input>
-                                {(sugerencias.length > 0 && fieldName === "persona_registra") && (
-                                    <ul className="sugerencias-list">
-                                        {sugerencias.map((sugerencia, index) => (
-                                            <li key={index} onClick={() => handleSelect(sugerencia)}>
-                                                {sugerencia}
-                                            </li>
-                                        ))}
-                                    </ul>
+
+                                <div className="form-group" id='hallazgo_deocumentacion'>
+                                    <label>Hallazgo:</label>
+                                    <select id='hallazgo' name="hallazgo" value={formulario.hallazgo || ''} onChange={cambiado}>
+                                        <option value="No">No</option>
+                                        <option value="Sí">Sí</option>
+                                    </select>
+                                </div>
+
+                                <div className="form-group" id='edicion_hemerografia'>
+                                    <label>Mostrar:</label>
+                                    <select id='hallazgo' name="mostrar" value={formulario.mostrar || ''} onChange={cambiado}>
+                                        <option value="No">No</option>
+                                        <option value="Sí">Sí</option>
+                                    </select>
+                                </div>
+                                <div className="form-group" id='edicion_hemerografia' >
+                                    <label>Revisado:</label>
+                                    <select id='hallazgo' name="revisado" value={formulario.revisado || ''} onChange={cambiado}>
+                                        <option value="No">No</option>
+                                        <option value="Sí">Sí</option>
+                                    </select>
+                                </div>
+
+                                <div className="form-group" id='persona_registra_documentacion'>
+                                    <label>Persona que registra:</label>
+                                    <input type='text' name="persona_registra" value={formulario.persona_registra || ''} onChange={handleChange}>
+                                    </input>
+                                    {(sugerencias.length > 0 && fieldName === "persona_registra") && (
+                                        <ul className="sugerencias-list">
+                                            {sugerencias.map((sugerencia, index) => (
+                                                <li key={index} onClick={() => handleSelect(sugerencia)}>
+                                                    {sugerencia}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
+                                </div>
                             </div>
-                        </div>
                         </div>
                         <button className="button" onClick={guardar_foto}>Enviar</button>
-                        
+
                         <strong id='saved_text'>{saved === 'saved' ? 'Fotografia actualizada correctamente' : ''}</strong>
                         <strong id="error_text">{saved === 'error' ? 'No se ha registrado la foto ' : ''}</strong>
 
@@ -656,7 +641,7 @@ export const RegPartituras = () => {
                         <div className='mensajes_peticiones'>
                             {mensajes.mensaje1 ?
                                 <div className='mensajes'>
-                                    <strong id='saved_text'>{statuses.peticion1 === 'successs' ? 'Información registrada correctamente' : ''}</strong>
+                                    <strong id='saved_text'>{statuses.peticion1 === 'success' ? 'Información registrada correctamente' : ''}</strong>
                                     <strong id='error_text'>{statuses.peticion1 === 'error' ? 'Error al registrar en base de datos' : ''}</strong>
                                     <h4>Mensaje:</h4>
                                     <p>{mensajes.mensaje1}</p>
@@ -688,8 +673,8 @@ export const RegPartituras = () => {
                                 : ""}
                         </div>
                         <div className="images-preview">
-                            {selectedImages[0]? <h1>Fotografias subidas</h1> : ""}
-                            
+                            {selectedImages[0] ? <h1>Fotografias subidas</h1> : ""}
+
                             {selectedImages.map((image, index) => (
                                 <div key={index} className="image-preview">
                                     <div className='marco2'>
@@ -697,23 +682,23 @@ export const RegPartituras = () => {
                                     </div>
                                 </div>
                             ))}
-                           
+
                         </div>
                         {pdfUrls.length > 0 && (
-                                <div className="pdf-preview">
-                        {pdfUrls[0]? <h1>PDFs subidos</h1> : ""}
-                                    {pdfUrls.map((url, index) => (
-                                        <div key={index} className="pdf-container">
-                                            <embed
-                                                src={url}
-                                                width="100%"
-                                                height="500px"
-                                                type="application/pdf"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <div className="pdf-preview">
+                                {pdfUrls[0] ? <h1>PDFs subidos</h1> : ""}
+                                {pdfUrls.map((url, index) => (
+                                    <div key={index} className="pdf-container">
+                                        <embed
+                                            src={url}
+                                            width="100%"
+                                            height="500px"
+                                            type="application/pdf"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </form>
                 </div>
             </main>

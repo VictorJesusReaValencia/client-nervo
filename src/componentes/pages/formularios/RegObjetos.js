@@ -6,32 +6,32 @@ import { useState, useEffect } from 'react';
 
 export const RegObjetos = () => {
     const { formulario, enviado, cambiado, resetFormulario } = useForm({})
-    const [resultado, setResultado] = useState(false)
-    const [fileName, setFileName] = useState('');
+    //----------------------------------Paises, ciudades e instituciones ----------------------------------//
+    const [data, setData] = useState(null);
     const [paises, setPaises] = useState([]);
     const [ciudades, setCiudades] = useState([]);
     const [instituciones, setInstituciones] = useState([]);
     const [selectedPais, setSelectedPais] = useState('');
     const [selectedCiudad, setSelectedCiudad] = useState('');
-    const [saved, setSaved] = useState('not sended');
-    const [data, setData] = useState(null);
-    const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
-    const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
-    const [loadingProgress, setLoadingProgress] = useState(0);
-
-    const [showModal, setShowModal] = useState(false);
-    const [customPromptText, setCustomPromptText] = useState('');
-    const [currentField, setCurrentField] = useState('');
-    const [originalPrompt, setOriginalPrompt] = useState('');
+    //----------------------------------Formulario y sugerencias ----------------------------------//
     const [selectedImages, setSelectedImages] = useState([]);
     const [pdfUrls, setPdfUrls] = useState([]);
     const [value, setValue] = useState('');
     const [sugerencias, setSugerencias] = useState([]);
     const [fieldName, setFieldName] = useState('');
+    //----------------------------------Guardar y enviar ----------------------------------//
+    const [resultado, setResultado] = useState(false)
+    const [fileName, setFileName] = useState('');
+    const [saved, setSaved] = useState('not sended');
+    const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
+    const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
+    const [loadingProgress, setLoadingProgress] = useState(0);
 
+    // Este useEffect se encarga de obtener los datos de las instituciones para la parte final del formulario
+    // Se hace la peticion la la API y se guardan los datos en data y el primer cammpo en los paises para su seleccion ene l formulario
     useEffect(() => {
         const fetchData = async () => {
-            const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
+            const url = `http://localhost:3900/api/instituciones/listar/todo`;
             try {
                 const response = await fetch(url, {
                     method: "GET"
@@ -50,6 +50,59 @@ export const RegObjetos = () => {
         };
         fetchData();
     }, []);
+    // Al modificar el campo pais, se actualizan las ciudades y se selecciona la primera si solo hay una
+    useEffect(() => {
+
+        if (formulario.pais) {
+            const ciudades = Object.keys(data[formulario.pais]);
+            setCiudades(ciudades);
+            if (ciudades.length === 1) {
+                setSelectedCiudad(ciudades[0]);
+
+            } else {
+                setSelectedCiudad('');
+                setInstituciones([]);
+            }
+        }
+    }, [formulario.pais]);
+    // Una vez seleccionado el pais y la ciudad, se cargan las instituciones correspondientes a la ciudad
+    useEffect(() => {
+        if (formulario.ciudad && formulario.pais) {
+            const instituciones = data[formulario.pais][formulario.ciudad];
+            setInstituciones(instituciones);
+        }
+    }, [formulario.ciudad]);
+
+
+    // Obtiene las sugerencias de autocompletado desde la API cuando el valor del input cambia y tiene mas de 1 caracter
+    useEffect(() => {
+        if (value.length > 1 && fieldName) {
+            const fetchSugerencias = async () => {
+                try {
+                    const response = await fetch(`http://localhost:3900/api/objetos/search?query=${value}&campo=${fieldName}`);
+                    if (!response.ok) {
+                        throw new Error('Error fetching suggestions');
+                    }
+                    const data = await response.json();
+                    setSugerencias(data);
+                } catch (err) {
+                    console.error('Error fetching suggestions:', err);
+                }
+            };
+
+            fetchSugerencias();
+        } else {
+            setSugerencias([]);
+        }
+    }, [value, fieldName]);
+    // NO se que hace
+    useEffect(() => {
+        return () => {
+            // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
+            pdfUrls.forEach(url => URL.revokeObjectURL(url));
+        };
+    }, [pdfUrls]);
+    // Aqui manejamos el estado del formlario, reiniciamos la barra de progreso y los mensajes de error dependiendo de cada peticion
     useEffect(() => {
         setSaved("")
         setLoadingProgress(0);
@@ -66,55 +119,9 @@ export const RegObjetos = () => {
             mensaje4: ''
         });
     }, [formulario])
-    useEffect(() => {
-
-        if (formulario.pais) {
-            const ciudades = Object.keys(data[formulario.pais]);
-            setCiudades(ciudades);
-            if (ciudades.length === 1) {
-                setSelectedCiudad(ciudades[0]);
-
-            } else {
-                setSelectedCiudad('');
-                setInstituciones([]);
-            }
-        }
-    }, [formulario.pais]);
-    useEffect(() => {
-        if (formulario.ciudad && formulario.pais) {
-            const instituciones = data[formulario.pais][formulario.ciudad];
-            setInstituciones(instituciones);
-        }
-    }, [formulario.ciudad]);
-    useEffect(() => {
-        return () => {
-            // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
-            pdfUrls.forEach(url => URL.revokeObjectURL(url));
-        };
-    }, [pdfUrls]);
-    useEffect(() => {
-        if (value.length > 1 && fieldName) {
-            const fetchSugerencias = async () => {
-                try {
-                    const response = await fetch(`https://backend-prueba-apel.onrender.com/api/objetos/search?query=${value}&campo=${fieldName}`);
-                    if (!response.ok) {
-                        throw new Error('Error fetching suggestions');
-                    }
-                    const data = await response.json();
-                    setSugerencias(data);
-                } catch (err) {
-                    console.error('Error fetching suggestions:', err);
-                }
-            };
-
-            fetchSugerencias();
-        } else {
-            setSugerencias([]);
-        }
-    }, [value, fieldName]);
 
     const handleSelect = (sugerencia) => {
-        const e = { target:{name:fieldName, value:sugerencia}}
+        const e = { target: { name: fieldName, value: sugerencia } }
         if (fieldName) {
             cambiado(e);
             setSugerencias([]);
@@ -124,28 +131,28 @@ export const RegObjetos = () => {
     };
 
     const handleChange = (e) => {
-        
+
         if (!e || !e.target) {
             console.error("El evento o el target están indefinidos:", e);
             return;
         }
-    
-        const  name = e.target.name;
+
+        const name = e.target.name;
         const value = e.target.value
         setValue(value); // Actualizar el valor del input
         setFieldName(name); // Guardar el nombre del campo para el autocompletado
         cambiado(e); // Actualizar el estado del formulario
     };
-    
+
     const guardar_foto = async (e) => {
         e.preventDefault();
         let nueva_foto = formulario;
-        const { datos } = await Api("https://backend-prueba-apel.onrender.com/api/objetos/registrar", "POST", nueva_foto);
+        const { datos } = await Api("http://localhost:3900/api/objetos/registrar", "POST", nueva_foto);
         setLoadingProgress(25); // Incrementa el progreso
         setStatuses(prev => ({ ...prev, peticion1: datos.status }));
         setMensajes(prev => ({ ...prev, mensaje1: datos.mensaje }));
 
-        if (datos.status === "successs") {
+        if (datos.status === "success") {
             //   console.log("status success")
             const fileInput = document.querySelector("#file");
             const formData = new FormData();
@@ -153,12 +160,12 @@ export const RegObjetos = () => {
                 formData.append(`files`, file);
             });
             // console.log("formdata",formData)
-            const subida2 = await Api(`https://backend-prueba-apel.onrender.com/api/objetos/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
+            /*const subida2 = await Api(`http://localhost:3900/api/objetos/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
             setLoadingProgress(50); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion2: subida2.datos.status }));
-            setMensajes(prev => ({ ...prev, mensaje2: subida2.datos.message }));
+            setMensajes(prev => ({ ...prev, mensaje2: subida2.datos.message }));*/
 
-            const subida = await Api(`https://backend-google-fnsu.onrender.com/api/objetos/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
+            const subida = await Api(`http://localhost:3900/api/objetos/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
             setLoadingProgress(75); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion3: subida.datos.status }));
             setMensajes(prev => ({ ...prev, mensaje3: subida.datos.message }));
@@ -170,7 +177,7 @@ export const RegObjetos = () => {
             });
 
             //const { pdfSubida } = await Api(`https://backend-prueba-apel.onrender.com/api/objetos/registrar-pdf/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
-            const pdfSubida2 = await Api(`https://backend-google-fnsu.onrender.com/api/objetos/registrar-pdf/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
+            const pdfSubida2 = await Api(`http://localhost:3900/api/objetos/registrar-pdfs/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
             setLoadingProgress(100); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion4: pdfSubida2.datos.status }));
             setMensajes(prev => ({ ...prev, mensaje4: pdfSubida2.datos.message }));
@@ -180,52 +187,6 @@ export const RegObjetos = () => {
             console.log("status error")
             setSaved("error");
         }
-    };
-    const handleAutoComplete = async (field, promptId) => {
-        const fileInput = document.querySelector("#file");
-        if (fileInput.files.length > 0) {
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-            if (datos && datos.message) {
-                cambiado({ target: { name: field, value: datos.message } });
-            }
-        } else {
-            alert("Por favor selecciona una imagen primero.");
-        }
-    };
-    const handleAutoCompleteSelect = async (field, promptId) => {
-        const fileInput = document.querySelector("#file");
-        if (fileInput.files.length > 0) {
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-            if (datos && datos.message) {
-                // Validar que el mensaje sea una opción válida del select
-                const opcionesValidas = ['notas', 'articulos', 'cronicas', 'frases', 'poesia', 'pendiente', 'noticias', 'cuento'];
-                const generoSugerido = datos.message.toLowerCase();
-
-                if (opcionesValidas.includes(generoSugerido)) {
-                    cambiado({ target: { name: field, value: datos.message } });
-                } else {
-                    alert("El género sugerido no es válido para este campo.");
-                }
-            }
-        } else {
-            alert("Por favor selecciona una imagen primero.");
-        }
-    };
-    const handleEditPromptAndAutoComplete = async (field, prompt) => {
-        setCurrentField(field);
-        setOriginalPrompt(prompt);
-        setCustomPromptText(prompt);
-        setShowModal(true);
-    };
-    const handleModalSubmit = () => {
-        handleAutoComplete(currentField, customPromptText);
-        setShowModal(false);
     };
     const handleImageChange = (e) => {
         if (e.target.files) {
@@ -249,19 +210,14 @@ export const RegObjetos = () => {
                     <h1>Formulario de registro de Objetos</h1>
 
 
-            
+
                     <form onSubmit={guardar_foto}>
-                   
+
 
                         <div className='divisor_form'>
-                        <div className="form-group" id='titulo_objetos'>
+                            <div className="form-group" id='titulo_objetos'>
                                 <label>Título</label>
-                                <div className='botonesIA'>
-                                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('nombre_periodico', 'Dame el nombre de este periódico, solo contesta con el nombre')}></img>
-                                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png' onClick={() => handleEditPromptAndAutoComplete('nombre_periodico', 'Dame el nombre de este periódico, solo contesta con el nombre')}></img>
-
-                                </div>
-                                <input id='encabezado' type="textarea" name="titulo" placeholder="Título" value={formulario.titulo|| ''} onChange={cambiado} />
+                                <input id='encabezado' type="textarea" name="titulo" placeholder="Título" value={formulario.titulo || ''} onChange={cambiado} />
                             </div>
                             <div className="form-group" id="numeroEdicion">
                                 <label htmlFor="numeroEdicion">Número de registro</label>
@@ -282,7 +238,7 @@ export const RegObjetos = () => {
                                     value={formulario.tipo_objetos || ''}
                                     onChange={cambiado}
                                 >
-                
+
                                 </input>
                             </div>
 
@@ -290,54 +246,47 @@ export const RegObjetos = () => {
                                 <label>Descripción física :</label>
                                 <input type="text" className='autor' name="descripcion_fisica" placeholder="descripcion física" value={formulario.descripcion_fisica || ''} onChange={cambiado} />
                             </div>
-                            
+
                             <div className="form-group" id="default_objetos">
-                            <label id='fecha_publicacionLabel'>procedencia</label>
-                            <input
-                                type="text"
-                                name="procedencia"
-                                value={formulario.procedencia}
-                                onChange={cambiado}
-                            />
-                            </div>   
+                                <label id='fecha_publicacionLabel'>procedencia</label>
+                                <input
+                                    type="text"
+                                    name="procedencia"
+                                    value={formulario.procedencia}
+                                    onChange={cambiado}
+                                />
+                            </div>
 
-                         
 
-                            
 
-                            
-                            
+
+
+
+
                         </div>
-                           
-                            <div className='form-group' id='imagenes_hemerografia'>
-                                <label htmlFor='file0'>Imágenes: </label>
-                                <input type='file' onChange={handleImageChange} name='file0' id="file" multiple />
-                            </div>
-                            <div className="form-group" id='edicion_hemerografia'>
-                                <label>Edición:</label>
-                                <select id='hallazgo' name="edicion" value={formulario.edicion || ''} onChange={cambiado}>
-                                    <option value="No">No</option>
-                                    <option value="Sí">Sí</option>
-                                </select>
-                            </div>
-                            <div className='form-group' id='pdf2'>
-                                <label htmlFor='pdfs'>Pdfs: </label>
-                                <input type='file' onChange={handlePDFChange} name='pdfs' id='pdf' multiple />
-                            </div>
-                      
+
+                        <div className='form-group' id='imagenes_hemerografia'>
+                            <label htmlFor='file0'>Imágenes: </label>
+                            <input type='file' onChange={handleImageChange} name='file0' id="file" multiple />
+                        </div>
+                        <div className="form-group" id='edicion_hemerografia'>
+                            <label>Edición:</label>
+                            <select id='hallazgo' name="edicion" value={formulario.edicion || ''} onChange={cambiado}>
+                                <option value="No">No</option>
+                                <option value="Sí">Sí</option>
+                            </select>
+                        </div>
+                        <div className='form-group' id='pdf2'>
+                            <label htmlFor='pdfs'>Pdfs: </label>
+                            <input type='file' onChange={handlePDFChange} name='pdfs' id='pdf' multiple />
+                        </div>
+
 
                         <div className='divisor_form_objetos_1'>
 
 
                             <div className="form-group" id="resumen_hemerografia">
                                 <p id='resumen_hemerografia_p'>Resumen:</p>
-
-                                <div className='botonesIA_resumen_hemerografia'>
-
-                                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                                </div>
-
                                 <textarea
                                     type="text"
 
@@ -346,15 +295,15 @@ export const RegObjetos = () => {
                                     value={formulario.resumen || ''}
                                     onChange={handleChange}
                                 />
-{(sugerencias.length > 0 && fieldName === "nombre_periodico") && (
-            <ul className="sugerencias-list">
-                {sugerencias.map((sugerencia, index) => (
-                    <li key={index} onClick={() => handleSelect(sugerencia)}>
-                        {sugerencia}
-                    </li>
-                ))}
-            </ul>
-            )}
+                                {(sugerencias.length > 0 && fieldName === "nombre_periodico") && (
+                                    <ul className="sugerencias-list">
+                                        {sugerencias.map((sugerencia, index) => (
+                                            <li key={index} onClick={() => handleSelect(sugerencia)}>
+                                                {sugerencia}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                             <div className="form-group" id="pendientes_hemerografia">
                                 <p id='pendientes_hemerografia_p'>Pendientes:</p>
@@ -369,14 +318,6 @@ export const RegObjetos = () => {
                             <div className='divisor_form'>
                                 <div className="form-group" id="transcripcion_hemerografia">
                                     <p>Transcripciòn</p>
-                                    <div className='botonesIA_resumen_hemerografia'>
-
-                                        <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-                                        <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-
-
-
-                                    </div>
                                     <textarea
                                         type="text"
                                         id="transcripcionInput2"
@@ -387,7 +328,7 @@ export const RegObjetos = () => {
                                 </div>
                             </div>
 
-                                   <div className="form-group">
+                            <div className="form-group">
                                 <label>País:</label>
                                 <select
                                     id="pais"
@@ -432,11 +373,11 @@ export const RegObjetos = () => {
                                     ))}
                                 </select>
                             </div>
-                    
+
                             <div className="form-group" id='ubicacion_fisica_documentacion'>
                                 <label>Ubicación física:</label>
                                 <input type='text' name="ubicacion_fisica" value={formulario.ubicacion_fisica || ''} onChange={handleChange}>
-                        
+
                                 </input>
                                 {(sugerencias.length > 0 && fieldName === "ubicacion_fisica") && (
                                     <ul className="sugerencias-list">
@@ -446,26 +387,26 @@ export const RegObjetos = () => {
                                             </li>
                                         ))}
                                     </ul>
-                                    )}
+                                )}
                             </div>
                             <div className="form-group" id='coleccion_hemerografia'>
                                 <label>Colección:</label>
                                 {(sugerencias.length > 0 && fieldName === "coleccion") && (
-            <ul className="sugerencias-list">
-                {sugerencias.map((sugerencia, index) => (
-                    <li key={index} onClick={() => handleSelect(sugerencia)}>
-                        {sugerencia}
-                    </li>
-                ))}
-            </ul>
-            )}
+                                    <ul className="sugerencias-list">
+                                        {sugerencias.map((sugerencia, index) => (
+                                            <li key={index} onClick={() => handleSelect(sugerencia)}>
+                                                {sugerencia}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                                 <input type='text' name="coleccion" value={formulario.coleccion || ''} onChange={handleChange}>
-                                {/*
+                                    {/*
                                              <option value="">Seleccionar la colección</option>
                                     <option value="Privada">Privada</option>
                                     <option value="Pública">Pública</option>
                                 */}
-                       
+
                                 </input>
                             </div>
                             <div className="form-group">
@@ -504,8 +445,8 @@ export const RegObjetos = () => {
                                             </li>
                                         ))}
                                     </ul>
-                                    )}
-                                     <input type='text' name="tema" value={formulario.tema || ''} onChange={handleChange}>
+                                )}
+                                <input type='text' name="tema" value={formulario.tema || ''} onChange={handleChange}>
                                     {/*
                                        
                                     <option value="">Seleccionar el tema</option>
@@ -527,11 +468,11 @@ export const RegObjetos = () => {
                                     <option value="México Libre">México Libre</option>
                                     <option value="Recortes de prensa">Recortes de prensa</option>
                                     */}
-                            
+
                                 </input>
                             </div>
-                           
-                           
+
+
                             <div className="form-group" id='hallazgo_deocumentacion'>
                                 <label>Hallazgo:</label>
                                 <select id='hallazgo' name="hallazgo" value={formulario.hallazgo || ''} onChange={cambiado}>
@@ -567,12 +508,12 @@ export const RegObjetos = () => {
                                             </li>
                                         ))}
                                     </ul>
-                                    )}
+                                )}
                             </div>
                         </div>
 
                         <button className="button" onClick={guardar_foto}>Enviar</button>
-                        
+
                         <strong id='saved_text'>{saved === 'saved' ? 'Fotografia actualizada correctamente' : ''}</strong>
                         <strong id="error_text">{saved === 'error' ? 'No se ha registrado la foto ' : ''}</strong>
 
@@ -585,7 +526,7 @@ export const RegObjetos = () => {
                         <div className='mensajes_peticiones'>
                             {mensajes.mensaje1 ?
                                 <div className='mensajes'>
-                                    <strong id='saved_text'>{statuses.peticion1 === 'successs' ? 'Información registrada correctamente' : ''}</strong>
+                                    <strong id='saved_text'>{statuses.peticion1 === 'success' ? 'Información registrada correctamente' : ''}</strong>
                                     <strong id='error_text'>{statuses.peticion1 === 'error' ? 'Error al registrar en base de datos' : ''}</strong>
                                     <h4>Mensaje:</h4>
                                     <p>{mensajes.mensaje1}</p>
@@ -617,8 +558,8 @@ export const RegObjetos = () => {
                                 : ""}
                         </div>
                         <div className="images-preview">
-                            {selectedImages[0]? <h1>Fotografias subidas</h1> : ""}
-                            
+                            {selectedImages[0] ? <h1>Fotografias subidas</h1> : ""}
+
                             {selectedImages.map((image, index) => (
                                 <div key={index} className="image-preview">
                                     <div className='marco2'>
@@ -626,23 +567,23 @@ export const RegObjetos = () => {
                                     </div>
                                 </div>
                             ))}
-                           
+
                         </div>
                         {pdfUrls.length > 0 && (
-                                <div className="pdf-preview">
-                        {pdfUrls[0]? <h1>PDFs subidos</h1> : ""}
-                                    {pdfUrls.map((url, index) => (
-                                        <div key={index} className="pdf-container">
-                                            <embed
-                                                src={url}
-                                                width="100%"
-                                                height="500px"
-                                                type="application/pdf"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <div className="pdf-preview">
+                                {pdfUrls[0] ? <h1>PDFs subidos</h1> : ""}
+                                {pdfUrls.map((url, index) => (
+                                    <div key={index} className="pdf-container">
+                                        <embed
+                                            src={url}
+                                            width="100%"
+                                            height="500px"
+                                            type="application/pdf"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </form>
                 </div>
             </main>

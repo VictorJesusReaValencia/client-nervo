@@ -18,7 +18,7 @@ export const RegPeriodicos2 = () => {
 
     useEffect(() => {
       const fetchData = async () => {
-        const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
+        const url = `http://localhost:3900/api/instituciones/listar/todo`;
         try {
           const response = await fetch(url, {
             method: "GET"
@@ -69,7 +69,7 @@ export const RegPeriodicos2 = () => {
         let nueva_foto = formulario;
         const { datos } = await Api("http://localhost:3900/api/periodicos/registrar", "POST", nueva_foto);
         console.log(nueva_foto)
-        if (datos.status === "successs") {
+        if (datos.status === "success") {
             console.log("status success")
             const fileInput = document.querySelector("#file");
             const formData = new FormData();

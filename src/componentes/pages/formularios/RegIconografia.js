@@ -29,88 +29,95 @@ export const RegIconografia = () => {
     const [fieldName, setFieldName] = useState('');
 
     useEffect(() => {
-        const fetchData = async () => {
-            const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
-            try {
-                const response = await fetch(url, {
-                    method: "GET"
-                });
-                const result = await response.json();
-                if (result.status === "success") {
-                    setData(result.data);
-                    setPaises(Object.keys(result.data));
-                } else {
-                    // Manejo de error
-                    console.error("Error al obtener los datos", result.mesage);
-                }
-            } catch (error) {
-                console.error("Error al realizar la petición", error);
-            }
-        };
-        fetchData();
-    }, []);
-    useEffect(() => {
-        setSaved("")
-        setLoadingProgress(0);
-        setStatuses({
-            peticion1: '',
-            peticion2: '',
-            peticion3: '',
-            peticion4: ""
-        });
-        setMensajes({
-            mensaje1: '',
-            mensaje2: '',
-            mensaje3: '',
-            mensaje4: ''
-        });
-    }, [formulario])
-    useEffect(() => {
-
-        if (formulario.pais) {
-            const ciudades = Object.keys(data[formulario.pais]);
-            setCiudades(ciudades);
-            if (ciudades.length === 1) {
-                setSelectedCiudad(ciudades[0]);
-
-            } else {
-                setSelectedCiudad('');
-                setInstituciones([]);
-            }
-        }
-    }, [formulario.pais]);
-    useEffect(() => {
-        if (formulario.ciudad && formulario.pais) {
-            const instituciones = data[formulario.pais][formulario.ciudad];
-            setInstituciones(instituciones);
-        }
-    }, [formulario.ciudad]);
-    useEffect(() => {
-        return () => {
-            // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
-            pdfUrls.forEach(url => URL.revokeObjectURL(url));
-        };
-    }, [pdfUrls]);
-    useEffect(() => {
-        if (value.length > 1 && fieldName) {
-            const fetchSugerencias = async () => {
+            const fetchData = async () => {
+                const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
                 try {
-                    const response = await fetch(`https://backend-prueba-apel.onrender.com/api/iconografia/search?query=${value}&campo=${fieldName}`);
-                    if (!response.ok) {
-                        throw new Error('Error fetching suggestions');
+                    const response = await fetch(url, {
+                        method: "GET"
+                    });
+                    const result = await response.json();
+                    if (result.status === "success") {
+                        setData(result.data);
+                        setPaises(Object.keys(result.data));
+                    } else {
+                        // Manejo de error
+                        console.error("Error al obtener los datos", result.mesage);
                     }
-                    const data = await response.json();
-                    setSugerencias(data);
-                } catch (err) {
-                    console.error('Error fetching suggestions:', err);
+                } catch (error) {
+                    console.error("Error al realizar la petición", error);
                 }
             };
-
-            fetchSugerencias();
-        } else {
-            setSugerencias([]);
-        }
-    }, [value, fieldName]);
+            fetchData();
+        }, []);
+        // Al modificar el campo pais, se actualizan las ciudades y se selecciona la primera si solo hay una
+        useEffect(() => {
+    
+            if (formulario.pais) {
+                const ciudades = Object.keys(data[formulario.pais]);
+                setCiudades(ciudades);
+                if (ciudades.length === 1) {
+                    setSelectedCiudad(ciudades[0]);
+    
+                } else {
+                    setSelectedCiudad('');
+                    setInstituciones([]);
+                }
+            }
+        }, [formulario.pais]);   
+        // Una vez seleccionado el pais y la ciudad, se cargan las instituciones correspondientes a la ciudad
+        useEffect(() => {
+            if (formulario.ciudad && formulario.pais) {
+                const instituciones = data[formulario.pais][formulario.ciudad];
+                setInstituciones(instituciones);
+            }
+        }, [formulario.ciudad]);    
+        
+        
+        // Obtiene las sugerencias de autocompletado desde la API cuando el valor del input cambia y tiene mas de 1 caracter
+        useEffect(() => {
+            if (value.length > 1 && fieldName) {
+                const fetchSugerencias = async () => {
+                    try {
+                        const response = await fetch(`https://backend-prueba-apel.onrender.com/api/iconografia/search?query=${value}&campo=${fieldName}`);
+                        if (!response.ok) {
+                            throw new Error('Error fetching suggestions');
+                        }
+                        const data = await response.json();
+                        setSugerencias(data);
+                    } catch (err) {
+                        console.error('Error fetching suggestions:', err);
+                    }
+                };
+    
+                fetchSugerencias();
+            } else {
+                setSugerencias([]);
+            }
+        }, [value, fieldName]);
+        // NO se que hace
+        useEffect(() => {
+            return () => {
+                // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
+                pdfUrls.forEach(url => URL.revokeObjectURL(url));
+            };
+        }, [pdfUrls]);
+        // Aqui manejamos el estado del formlario, reiniciamos la barra de progreso y los mensajes de error dependiendo de cada peticion
+        useEffect(() => {
+            setSaved("")
+            setLoadingProgress(0);
+            setStatuses({
+                peticion1: '',
+                peticion2: '',
+                peticion3: '',
+                peticion4: ""
+            });
+            setMensajes({
+                mensaje1: '',
+                mensaje2: '',
+                mensaje3: '',
+                mensaje4: ''
+            });
+        }, [formulario])
 
     const handleSelect = (sugerencia) => {
         const e = { target:{name:fieldName, value:sugerencia}}

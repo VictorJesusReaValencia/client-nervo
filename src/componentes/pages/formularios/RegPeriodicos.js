@@ -37,7 +37,7 @@ export const RegPeriodicos = () => {
     // Se hace la peticion la la API y se guardan los datos en data y el primer cammpo en los paises para su seleccion ene l formulario
     useEffect(() => {
         const fetchData = async () => {
-            const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
+            const url = `http://localhost:3900/api/instituciones/listar/todo`;
             try {
                 const response = await fetch(url, {
                     method: "GET"
@@ -83,7 +83,7 @@ export const RegPeriodicos = () => {
         if (value.length > 1 && fieldName) {
             const fetchSugerencias = async () => {
                 try {
-                    const response = await fetch(`https://backend-prueba-apel.onrender.com/api/hemerografia/search?query=${value}&campo=${fieldName}`);
+                    const response = await fetch(`http://localhost:3900/api/hemerografia/search?query=${value}&campo=${fieldName}`);
                     if (!response.ok) {
                         throw new Error('Error fetching suggestions');
                     }
@@ -177,7 +177,7 @@ export const RegPeriodicos = () => {
     const guardar_foto = async (e) => {
         e.preventDefault();
         let nueva_foto = formulario;
-        const { datos } = await Api("http://localhost:3900/api/hemerografia/registrar", "POST", nueva_foto);
+        const { datos } = await Api("http://localhost:3900/api/periodicos/registrar", "POST", nueva_foto);
         setLoadingProgress(25); // Incrementa el progreso
         setStatuses(prev => ({ ...prev, peticion1: datos.status }));
         setMensajes(prev => ({ ...prev, mensaje1: datos.mensaje }));
@@ -190,7 +190,7 @@ export const RegPeriodicos = () => {
                 formData.append(`files`, file);
             });
             // console.log("formdata",formData)
-            const subida2 = await Api(`http://localhost:3900/api/hemerografia/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
+            const subida2 = await Api(`http://localhost:3900/api/periodicos/registrar-imagen/${datos.publicacionGuardada._id}`, "POST", formData, true);
             setLoadingProgress(50); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion2: subida2.datos.status }));
             setMensajes(prev => ({ ...prev, mensaje2: subida2.datos.message }));
@@ -207,7 +207,7 @@ export const RegPeriodicos = () => {
             });
 
             //const { pdfSubida } = await Api(`https://backend-prueba-apel.onrender.com/api/hemerografia/registrar-pdf/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
-            const pdfSubida2 = await Api(`http://localhost:3900/api/hemerografia/registrar-pdfs/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
+            const pdfSubida2 = await Api(`http://localhost:3900/api/periodicos/registrar-pdfs/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
             setLoadingProgress(100); // Incrementa el progreso
             setStatuses(prev => ({ ...prev, peticion4: pdfSubida2.datos.status }));
             setMensajes(prev => ({ ...prev, mensaje4: pdfSubida2.datos.message }));
@@ -233,7 +233,7 @@ export const RegPeriodicos = () => {
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
+            const { datos } = await Api(`http://localhost:3900/api/periodicos/gpt/image-text/${promptId}`, "POST", formData, true);
             if (datos && datos.message) {
                 cambiado({ target: { name: field, value: datos.message } });
             }
@@ -248,7 +248,7 @@ export const RegPeriodicos = () => {
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
+            const { datos } = await Api(`http://localhost:3900/api/periodicos/gpt/image-text/${promptId}`, "POST", formData, true);
             if (datos && datos.message) {
                 // Validar que el mensaje sea una opción válida del select
                 const opcionesValidas = ['notas', 'articulos', 'cronicas', 'frases', 'poesia', 'pendiente', 'noticias', 'cuento'];

@@ -7,8 +7,7 @@ import { useState, useEffect } from 'react';
 export const RegCorrespondencia = () => {
         const { formulario, enviado, cambiado, resetFormulario } = useForm({})
         //----------------------------------Paises, ciudades e instituciones ----------------------------------//
-        const 
-[data, setData] = useState(null);
+        const [data, setData] = useState(null);
         const [paises, setPaises] = useState([]);
         const [ciudades, setCiudades] = useState([]);
         const [instituciones, setInstituciones] = useState([]);
@@ -32,7 +31,7 @@ export const RegCorrespondencia = () => {
     // Se hace la peticion la la API y se guardan los datos en data y el primer cammpo en los paises para su seleccion ene l formulario
     useEffect(() => {
         const fetchData = async () => {
-            const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
+            const url = `http://localhost/api/instituciones/listar/todo`;
             try {
                 const response = await fetch(url, {
                     method: "GET"
@@ -80,7 +79,7 @@ export const RegCorrespondencia = () => {
         if (value.length > 1 && fieldName) {
             const fetchSugerencias = async () => {
                 try {
-                    const response = await fetch(`https://backend-prueba-apel.onrender.com/api/correspondencia/search?query=${value}&campo=${fieldName}`);
+                    const response = await fetch(`http://localhost:3900/api/correspondencia/search?query=${value}&campo=${fieldName}`);
                     if (!response.ok) {
                         throw new Error('Error fetching suggestions');
                     }
