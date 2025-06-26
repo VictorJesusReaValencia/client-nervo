@@ -5,30 +5,44 @@ import React, { useEffect, useState } from 'react';
 
 
 export const EditarLibros = () => {
-  const { formulario, enviado, cambiado, resetFormulario, setFormulario } = useForm({});
-  const [resultado, setResultado] = useState(false);
-  const [fileName, setFileName] = useState('');
+  const { formulario, enviado, cambiado, resetFormulario, setFormulario } = useForm({})
+  //----------------------------------Paises, ciudades e instituciones ----------------------------------//
+  const [data, setData] = useState(null);
   const [paises, setPaises] = useState([]);
   const [ciudades, setCiudades] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
   const [selectedPais, setSelectedPais] = useState('');
   const [selectedCiudad, setSelectedCiudad] = useState('');
-  const [saved, setSaved] = useState('not sended');
-  const { id } = useParams();
-  const [fotografia, setFotografia] = useState({});
-  const [data, setData] = useState(null);
-  const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
-  const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [showModal, setShowModal] = useState(false);
-  const [customPromptText, setCustomPromptText] = useState('');
-  const [currentField, setCurrentField] = useState('');
-  const [originalPrompt, setOriginalPrompt] = useState('');
+  //----------------------------------Formulario y sugerencias ----------------------------------//
   const [selectedImages, setSelectedImages] = useState([]);
   const [pdfUrls, setPdfUrls] = useState([]);
   const [value, setValue] = useState('');
   const [sugerencias, setSugerencias] = useState([]);
   const [fieldName, setFieldName] = useState('');
+  //----------------------------------ChatGPT ----------------------------------//
+  const [showModal, setShowModal] = useState(false);
+  const [customPromptText, setCustomPromptText] = useState('');
+  const [currentField, setCurrentField] = useState('');
+  const [originalPrompt, setOriginalPrompt] = useState('');
+  //----------------------------------Guardar y enviar ----------------------------------//
+  const [resultado, setResultado] = useState(false)
+  const [fileName, setFileName] = useState('');
+  const [saved, setSaved] = useState('not sended');
+  const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
+  const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  //----------------------------------Observaciones y obtener registro ----------------------------------//
+  const { id } = useParams();
+  const [fotografia, setFotografia] = useState({});
+  const [mostrarObservacion, setMostrarObservacion] = useState(false);
+  const [nuevaObservacion, setNuevaObservacion] = useState({
+    persona: "",
+    tipo_revision: "",
+    observacion: ""
+  });
+
+  // Este useEffect se encarga de obtener los datos de las instituciones para la parte final del formulario
+  // Se hace la peticion la la API y se guardan los datos en data y el primer cammpo en los paises para su seleccion ene l formulario
   useEffect(() => {
     const fetchData = async () => {
       const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
@@ -42,7 +56,7 @@ export const EditarLibros = () => {
           setPaises(Object.keys(result.data));
         } else {
           // Manejo de error
-          console.error("Error al obtener los datos", result.message);
+          console.error("Error al obtener los datos", result.mesage);
         }
       } catch (error) {
         console.error("Error al realizar la petición", error);
@@ -50,62 +64,29 @@ export const EditarLibros = () => {
     };
     fetchData();
   }, []);
+  // Al modificar el campo pais, se actualizan las ciudades y se selecciona la primera si solo hay una
   useEffect(() => {
-    setSaved("")
-    setLoadingProgress(0);
-    setStatuses({
-      peticion1: '',
-      peticion2: '',
-      peticion3: '',
-      peticion4: ""
-    });
-    setMensajes({
-      mensaje1: '',
-      mensaje2: '',
-      mensaje3: '',
-      mensaje4: ''
-    });
-  }, [formulario])
-  useEffect(() => {
-    const fetchFoto = async () => {
-      const url = `https://backend-prueba-apel.onrender.com/api/libros/libro/${id}`;
-      const peticion = await fetch(url, {
-        method: "GET"
-      });
 
-      let datos = await peticion.json();
-      if (datos.status === "success") {
-        setFotografia(datos.libro);
-      } else {
-        // Manejo de error
-      }
-    };
-    fetchFoto();
     if (formulario.pais) {
       const ciudades = Object.keys(data[formulario.pais]);
       setCiudades(ciudades);
-      setSaved("");
       if (ciudades.length === 1) {
         setSelectedCiudad(ciudades[0]);
+
       } else {
         setSelectedCiudad('');
         setInstituciones([]);
       }
     }
-  }, [formulario.pais, id]);
-
+  }, [formulario.pais]);
+  // Una vez seleccionado el pais y la ciudad, se cargan las instituciones correspondientes a la ciudad
   useEffect(() => {
     if (formulario.ciudad && formulario.pais) {
       const instituciones = data[formulario.pais][formulario.ciudad];
       setInstituciones(instituciones);
     }
   }, [formulario.ciudad]);
-  useEffect(() => {
-    return () => {
-      // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
-      pdfUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [pdfUrls]);
+  // Obtiene las sugerencias de autocompletado desde la API cuando el valor del input cambia y tiene mas de 1 caracter
   useEffect(() => {
     if (value.length > 1 && fieldName) {
       const fetchSugerencias = async () => {
@@ -126,6 +107,59 @@ export const EditarLibros = () => {
       setSugerencias([]);
     }
   }, [value, fieldName]);
+  // NO se que hace
+  useEffect(() => {
+    return () => {
+      // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
+      pdfUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [pdfUrls]);
+  // Aqui manejamos el estado del formlario, reiniciamos la barra de progreso y los mensajes de error dependiendo de cada peticion
+  useEffect(() => {
+    setSaved("")
+    setLoadingProgress(0);
+    setStatuses({
+      peticion1: '',
+      peticion2: '',
+      peticion3: '',
+      peticion4: ""
+    });
+    setMensajes({
+      mensaje1: '',
+      mensaje2: '',
+      mensaje3: '',
+      mensaje4: ''
+    });
+  }, [formulario])
+  // Aqui obtenemos los datos de la fotografia a editar
+  useEffect(() => {
+    const fetchFoto = async () => {
+      const url = `https://backend-prueba-apel.onrender.com/api/libros/libro/${id}`;
+      const peticion = await fetch(url, {
+        method: "GET"
+      });
+
+      let datos = await peticion.json();
+      if (datos.status === "success") {
+        setFotografia(datos.libro);
+
+      } else {
+        // Manejo de error
+      }
+    };
+    fetchFoto();
+    if (formulario.pais) {
+      const ciudades = Object.keys(data[formulario.pais]);
+      setCiudades(ciudades);
+      setSaved("");
+      if (ciudades.length === 1) {
+        setSelectedCiudad(ciudades[0]);
+      } else {
+        setSelectedCiudad('');
+        setInstituciones([]);
+      }
+    }
+  }, [formulario.pais, id]);
 
   const handleSelect = (sugerencia) => {
 
@@ -158,39 +192,60 @@ export const EditarLibros = () => {
   };
   const guardar_foto = async (e) => {
     e.preventDefault();
-    let nueva_foto = formulario;
 
-    const { datos, cargando } = await Api("https://backend-prueba-apel.onrender.com/api/libros/editar/" + id, "PUT", nueva_foto);
-    setLoadingProgress(25); // Incrementa el progreso
-    setStatuses(prev => ({ ...prev, peticion1: datos.status }))
+    let nueva_foto = { ...formulario }; // Clonamos el formulario para evitar modificar el estado directamente
+    const revisionesAnteriores = fotografia.revisiones || [];
+
+    // Si se agregó una nueva observación (revisión)
+    if (formulario.nueva_revision &&
+      formulario.nueva_revision.persona &&
+      formulario.nueva_revision.tipo_revision &&
+      formulario.nueva_revision.observacion
+    ) {
+      const nuevaRevision = {
+        persona: formulario.nueva_revision.persona,
+        fecha: new Date().toISOString(),
+        tipo_revision: formulario.nueva_revision.tipo_revision,
+        observacion: formulario.nueva_revision.observacion,
+        revision_resuelta: formulario.nueva_revision.revision_resuelta || false
+      };
+
+      // Combinar revisiones
+      nueva_foto.revisiones = [...revisionesAnteriores, nuevaRevision];
+    } else {
+      // Si no hay nueva revisión, conservar las anteriores
+      nueva_foto.revisiones = revisionesAnteriores;
+    }
+
+    const { datos, cargando } = await Api(`http://localhost:3900/api/libros/editar/${id}`, "PUT", nueva_foto);
+    setLoadingProgress(25);
+    setStatuses(prev => ({ ...prev, peticion1: datos.status }));
     setMensajes(prev => ({ ...prev, mensaje1: datos.message }));
-    if (datos.status == "success") {
-      const fileInput = document.querySelector("#file");
-      const formData = new FormData();
-      Array.from(fileInput.files).forEach((file, index) => {
-        formData.append(`files`, file);
-      });
+
+    if (datos.status === "success") {
       setSaved("saved");
 
-      const subida2 = await Api("https://backend-prueba-apel.onrender.com/api/libros/registrar-imagen/" + id, "POST", formData, true);
+      // Subida de imágenes
+      const fileInput = document.querySelector("#file");
+      const formData = new FormData();
+      Array.from(fileInput.files).forEach((file) => {
+        formData.append("files", file);
+      });
 
-      setLoadingProgress(50); // Incrementa el progreso
+      const subida2 = await Api(`http://localhost:3900/api/libros/editar-imagen/${id}`, "POST", formData, true);
+      setLoadingProgress(50);
       setStatuses(prev => ({ ...prev, peticion2: subida2.datos.status }));
       setMensajes(prev => ({ ...prev, mensaje2: subida2.datos.message }));
 
-      const subida = await Api("https://backend-google-fnsu.onrender.com/api/libros/editar-imagen/" + id, "POST", formData, true);
-      setLoadingProgress(75); // Incrementa el progreso
-      setStatuses(prev => ({ ...prev, peticion3: subida.datos.status }));
-      setMensajes(prev => ({ ...prev, mensaje3: subida.datos.message }));
+      // Subida de PDFs
       const pdfInput = document.querySelector("#pdf");
       const pdfFormData = new FormData();
       Array.from(pdfInput.files).forEach((file) => {
-        pdfFormData.append('pdfs', file);
+        pdfFormData.append("pdfs", file);
       });
 
-      //const { pdfSubida } = await Api(`https://backend-prueba-apel.onrender.com/api/hemerografia/registrar-pdf/${datos.publicacionGuardada._id}`, "POST", pdfFormData, true);
-      const pdfSubida2 = await Api(`https://backend-google-fnsu.onrender.com/api/libros/registrar-pdf/` + id, "POST", pdfFormData, true);
-      setLoadingProgress(100); // Incrementa el progreso
+      const pdfSubida2 = await Api(`http://localhost:3900/api/libros/editar-pdfs/${id}`, "POST", pdfFormData, true);
+      setLoadingProgress(100);
       setStatuses(prev => ({ ...prev, peticion4: pdfSubida2.datos.status }));
       setMensajes(prev => ({ ...prev, mensaje4: pdfSubida2.datos.message }));
 
@@ -199,53 +254,8 @@ export const EditarLibros = () => {
     } else {
       setSaved("error");
     }
-  }
-  const handleAutoComplete = async (field, promptId) => {
-    const fileInput = document.querySelector("#file");
-    if (fileInput.files.length > 0) {
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-
-      const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-      if (datos && datos.message) {
-        cambiado({ target: { name: field, value: datos.message } });
-      }
-    } else {
-      alert("Por favor selecciona una imagen primero.");
-    }
   };
-  const handleAutoCompleteSelect = async (field, promptId) => {
-    const fileInput = document.querySelector("#file");
-    if (fileInput.files.length > 0) {
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-
-      const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-      if (datos && datos.message) {
-        // Validar que el mensaje sea una opción válida del select
-        const opcionesValidas = ['notas', 'articulos', 'cronicas', 'frases', 'poesia', 'pendiente', 'noticias', 'cuento'];
-        const generoSugerido = datos.message.toLowerCase();
-
-        if (opcionesValidas.includes(generoSugerido)) {
-          cambiado({ target: { name: field, value: datos.message } });
-        } else {
-          alert("El género sugerido no es válido para este campo.");
-        }
-      }
-    } else {
-      alert("Por favor selecciona una imagen primero.");
-    }
-  };
-  const handleEditPromptAndAutoComplete = async (field, prompt) => {
-    setCurrentField(field);
-    setOriginalPrompt(prompt);
-    setCustomPromptText(prompt);
-    setShowModal(true);
-  };
-  const handleModalSubmit = () => {
-    handleAutoComplete(currentField, customPromptText);
-    setShowModal(false);
-  };
+  
   const handleImageChange = (e) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files).map((file) => URL.createObjectURL(file));
@@ -259,6 +269,49 @@ export const EditarLibros = () => {
     const files = e.target.files;
     const newPdfUrls = Array.from(files).map(file => URL.createObjectURL(file));
     setPdfUrls(prevPdfUrls => [...prevPdfUrls, ...newPdfUrls]); // Agrega las nuevas URLs al estado existente
+  };
+  const toggleRevisionResuelta = (index) => {
+    const nuevasRevisiones = [...(fotografia.revisiones || [])];
+    nuevasRevisiones[index].revision_resuelta = !nuevasRevisiones[index].revision_resuelta;
+
+    setFotografia(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+
+    setFormulario(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+  };
+  // Función para editar el texto de observación
+  const actualizarObservacion = (index, nuevoTexto) => {
+    const nuevasRevisiones = [...(fotografia.revisiones || [])];
+    nuevasRevisiones[index].observacion = nuevoTexto;
+
+    setFotografia(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+
+    setFormulario(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+  };
+  const eliminarRevision = (index) => {
+    const nuevasRevisiones = [...(fotografia.revisiones || [])];
+    nuevasRevisiones.splice(index, 1); // Elimina la revisión en ese índice
+
+    setFotografia(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+
+    setFormulario(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
   };
 
   return (
@@ -278,41 +331,21 @@ export const EditarLibros = () => {
 
               <div className="form-group" id='titulo_libros'>
                 <label>Título:</label>
-                <div className='botonesIA'>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('encabezado', 'Dame el encabezado de este periodico, solo contesta con el encabezado sin saltos de linea')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png   ' onClick={() => handleEditPromptAndAutoComplete('encabezado', 'Dame el encabezado de este periodico, solo contesta con el encabezado sin saltos de linea')}></img>
-                </div>
-                <input type="text" name="titulo" placeholder="Título" defaultValue = {fotografia.titulo || ''} onChange={cambiado} />
+                <input type="text" name="titulo" placeholder="Título" defaultValue={fotografia.titulo || ''} onChange={cambiado} />
 
               </div>
               <div className="form-group" id='autor_hemerografia'>
                 <label>Autor:</label>
-                <input type="text" className='autor' name="autor" placeholder="Autor" defaultValue = {fotografia.autor || ''} onChange={cambiado} />
+                <input type="text" className='autor' name="autor" placeholder="Autor" defaultValue={fotografia.autor || ''} onChange={cambiado} />
               </div>
               <div className="form-group" id='autor_hemerografia'>
                 <label>ISBN:</label>
-                <div className='botonesIA'>
-
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoCompleteSelect('seccion', 'Busca si en este periodico hay alguna de estas secciones:Fuegos Fatuos, Pimientos dulces, Página literaria, Literatura, Actualidades europeas, Asuntos femeninos, Actualidades literarias, Actualidades madrileñas, La varita de la virtud, Desde parís, Desde Madrid, Actualidades, Actualidades españolas, Plaso ibañes, "El Imparcial", De Amado Nervo, La literatura maravillosa, Crónicas frívolas, Literatura nacional, Sociales, Poesía, Literaria, solo contesta con la seccion sin punto')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('seccion', 'Busca si en este periodico hay alguna de estas secciones:Fuegos Fatuos, Pimientos dulces, Página literaria, Literatura, Actualidades europeas, Asuntos femeninos, Actualidades literarias, Actualidades madrileñas, La varita de la virtud, Desde parís, Desde Madrid, Actualidades, Actualidades españolas, Plaso ibañes, "El Imparcial", De Amado Nervo, La literatura maravillosa, Crónicas frívolas, Literatura nacional, Sociales, Poesía, Literaria, solo contesta con la seccion sin punto')}></img>
-
-
-
-                </div>
-                <input type="text" className='autor' name="isbn" placeholder="ISBN" defaultValue = {fotografia.isbn || ''} onChange={cambiado} />
+                <input type="text" className='autor' name="isbn" placeholder="ISBN" defaultValue={fotografia.isbn || ''} onChange={cambiado} />
               </div>
 
 
               <div className="form-group" id='seccion_hemerografia'>
                 <label>Editorial:</label>
-                <div className='botonesIA'>
-
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoCompleteSelect('seccion', 'Busca si en este periodico hay alguna de estas secciones:Fuegos Fatuos, Pimientos dulces, Página literaria, Literatura, Actualidades europeas, Asuntos femeninos, Actualidades literarias, Actualidades madrileñas, La varita de la virtud, Desde parís, Desde Madrid, Actualidades, Actualidades españolas, Plaso ibañes, "El Imparcial", De Amado Nervo, La literatura maravillosa, Crónicas frívolas, Literatura nacional, Sociales, Poesía, Literaria, solo contesta con la seccion sin punto')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('seccion', 'Busca si en este periodico hay alguna de estas secciones:Fuegos Fatuos, Pimientos dulces, Página literaria, Literatura, Actualidades europeas, Asuntos femeninos, Actualidades literarias, Actualidades madrileñas, La varita de la virtud, Desde parís, Desde Madrid, Actualidades, Actualidades españolas, Plaso ibañes, "El Imparcial", De Amado Nervo, La literatura maravillosa, Crónicas frívolas, Literatura nacional, Sociales, Poesía, Literaria, solo contesta con la seccion sin punto')}></img>
-
-
-
-                </div>
                 <input
                   type='text'
                   id="generoPeriodistico"
@@ -343,7 +376,7 @@ export const EditarLibros = () => {
                   id="numeroEdicionInput"
                   name="numero_edicion"
                   placeholder=''
-                  defaultValue = {fotografia.numero_edicion}
+                  defaultValue={fotografia.numero_edicion}
                   onChange={cambiado}
                 />
 
@@ -354,7 +387,7 @@ export const EditarLibros = () => {
                   type="number"
                   id="numeroEdicionInput"
                   name="numero_paginas"
-                  defaultValue = {fotografia.numero_paginas || ''}
+                  defaultValue={fotografia.numero_paginas || ''}
                   onChange={cambiado}
                 />
               </div>
@@ -364,7 +397,7 @@ export const EditarLibros = () => {
                   type="number"
                   id="numeroEdicionInput"
                   name="numero_registro"
-                  defaultValue = {fotografia.numero_registro || ''}
+                  defaultValue={fotografia.numero_registro || ''}
                   onChange={cambiado}
                 />
               </div>
@@ -397,7 +430,7 @@ export const EditarLibros = () => {
                 <input
                   type="number"
                   name="fecha_publicacion"
-                  defaultValue = {fotografia.fecha_publicacion}
+                  defaultValue={fotografia.fecha_publicacion}
                   onChange={cambiado}
                 />
 
@@ -407,7 +440,7 @@ export const EditarLibros = () => {
                 <input
                   type="number"
                   name="fecha_reimpresion"
-                  defaultValue = {fotografia.fecha_reimpresion}
+                  defaultValue={fotografia.fecha_reimpresion}
                   onChange={cambiado}
                 />
               </div>
@@ -418,7 +451,7 @@ export const EditarLibros = () => {
                   id="numeroEdicionInput"
                   name="volumen"
                   placeholder=''
-                  defaultValue = {fotografia.volumen}
+                  defaultValue={fotografia.volumen}
                   onChange={cambiado}
                 />
               </div>
@@ -429,7 +462,7 @@ export const EditarLibros = () => {
                   id="prologoInput"
                   name="prologo"
                   placeholder=""
-                  defaultValue = {fotografia.prologo || ''}
+                  defaultValue={fotografia.prologo || ''}
                   onChange={cambiado}
                 />
               </div>
@@ -440,7 +473,7 @@ export const EditarLibros = () => {
                   id="prologoInput"
                   name="compiladores"
                   placeholder=""
-                  defaultValue = {fotografia.compiladores || ''}
+                  defaultValue={fotografia.compiladores || ''}
                   onChange={cambiado}
                 />
               </div>
@@ -451,7 +484,7 @@ export const EditarLibros = () => {
                   id="prologoInput"
                   name="coleccion_serie"
                   placeholder=""
-                  defaultValue = {fotografia.coleccion_serie || ''}
+                  defaultValue={fotografia.coleccion_serie || ''}
                   onChange={cambiado}
                 />
               </div>
@@ -463,8 +496,8 @@ export const EditarLibros = () => {
 
               <div className="form-group" id='edicion_hemerografia'>
                 <label>Edición:</label>
-                <select id='hallazgo' name="edicion" defaultValue = {fotografia.edicion } onChange={cambiado}>
-                  <option value={fotografia.edicion }>{fotografia.edicion }</option>
+                <select id='hallazgo' name="edicion" defaultValue={fotografia.edicion} onChange={cambiado}>
+                  <option value={fotografia.edicion}>{fotografia.edicion}</option>
                   <option value="No">No</option>
                   <option value="Sí">Sí</option>
                 </select>
@@ -481,12 +514,6 @@ export const EditarLibros = () => {
 
               <div className="form-group" id="resumen_hemerografia">
                 <p id='resumen_hemerografia_p'>Resumen:</p>
-
-                <div className='botonesIA_resumen_hemerografia'>
-
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                </div>
 
                 <textarea
                   type="text"
@@ -511,14 +538,6 @@ export const EditarLibros = () => {
               <div className='divisor_form'>
                 <div className="form-group" id="transcripcion_hemerografia">
                   <p>Transcripciòn</p>
-                  <div className='botonesIA_resumen_hemerografia'>
-
-                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-
-
-
-                  </div>
                   <textarea
                     type="text"
                     id="transcripcionInput2"
@@ -610,7 +629,7 @@ export const EditarLibros = () => {
                   onChange={handleChange}>
 
                 </input>
-                
+
               </div>
 
               <div className="form-group">
@@ -703,110 +722,272 @@ export const EditarLibros = () => {
               </div>
             </div>
             <button className="button" onClick={guardar_foto}>Enviar</button>
-          <strong id='saved_text'>{saved === 'saved' ? 'Fotografia actualizada correctamente' : ''}</strong>
-          <strong id="error_text">{saved === 'error' ? 'No se ha registrado la foto ' : ''}</strong>
+            <strong id='saved_text'>{saved === 'saved' ? 'Fotografia actualizada correctamente' : ''}</strong>
+            <strong id="error_text">{saved === 'error' ? 'No se ha registrado la foto ' : ''}</strong>
 
-          <div className="progress-bar">
-              <div className="progress" style={{ width: `${loadingProgress}%` }}></div>
-              <p className="progress-text">{loadingProgress}%</p>
-          </div>
-          <div className='mensajes_peticiones'>
-                            {mensajes.mensaje1 ?
-                                <div className='mensajes'>
-                                    <strong id='saved_text'>{statuses.peticion1 === 'success' ? 'Información registrada correctamente' : ''}</strong>
-                                    <strong id='error_text'>{statuses.peticion1 === 'error' ? 'Error al registrar en base de datos' : ''}</strong>
-                                    <h4>Mensaje:</h4>
-                                    <p>{mensajes.mensaje1}</p>
-                                </div>
-                                : ""}
-                            {mensajes.mensaje2 ?
-                                <div className='mensajes'>
-                                    <strong id='saved_text'>{statuses.peticion2 === 'success' ? 'Foto subida al servidor Node' : ''}</strong>
-                                    <strong id='error_text'>{statuses.peticion2 === 'error' ? 'Error al registrar en el servidor node' : ''}</strong>
-                                    <h4>Mensaje:</h4>
-                                    <p> {mensajes.mensaje2}</p>
-                                </div>
-                                : ""}
-                            {mensajes.mensaje3 ?
-                                <div className='mensajes'>
-                                    <strong id='saved_text'>{statuses.peticion3 === 'success' ? 'Foto subida correctamente a Drive' : ''}</strong>
-                                    <strong id='error_text'>{statuses.peticion3 === 'error' ? 'Error al subir foto a Drive' : ''}</strong>
-                                    <h4>Mensaje:</h4>
-                                    <p>{mensajes.mensaje3}</p>
-                                </div>
-                                : ""}
-                            {mensajes.mensaje4 ?
-                                <div className='mensajes'>
-                                    <strong id='saved_text'>{statuses.peticion4 === 'success' ? 'PDFs subida correctamente a Drive' : ''}</strong>
-                                    <strong id='error_text'>{statuses.peticion4 === 'error' ? 'Error al subir pdf a Drive' : ''}</strong>
-                                    <h4>Mensaje:</h4>
-                                    <p> {mensajes.mensaje4}</p>
-                                </div>
-                                : ""}
-                        </div>
-                        <div className="images-preview">
-          
+            <h3>Historial de Revisiones</h3>
+            {(fotografia.revisiones || []).map((rev, index) => (
+              <div key={index} className="revision-item">
+                <p><strong>Persona:</strong> {rev.persona}</p>
+                <p><strong>Fecha:</strong> {new Date(rev.fecha).toLocaleString()}</p>
+                <p><strong>Tipo:</strong> {rev.tipo_revision}</p>
 
-            
-             {/* Verifica la estructura de fotografia.images */}
-            {fotografia.images && fotografia.images.map((image, index) => (
-              <div className="image-preview">
-                <div className='marco2'>
-              <img
-                key={index}
-                src={`https://backend-prueba-apel.onrender.com/imagenes/libros/${image.nombre}`}
-                alt={`${image.nombre}`}
-                className='fotografia-img-large'
-              />
-                </div>
+                <label>
+                  <strong>Observación:</strong>
+                  <textarea
+                    value={rev.observacion}
+                    onChange={(e) => actualizarObservacion(index, e.target.value)}
+                  />
+                </label>
+
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={rev.revision_resuelta}
+                    onChange={() => toggleRevisionResuelta(index)}
+                  />
+                  Resuelta
+                </label>
+
+                {/* 🗑️ Botón para eliminar revisión */}
+                <button type="button" onClick={() => eliminarRevision(index)} className="btn btn-danger">
+                  Eliminar
+                </button>
+
+                <hr />
               </div>
             ))}
-          </div>
-        
-          {pdfUrls.length > 0 && (
-                                <div className="pdf-preview">
-                        {pdfUrls[0]? <h1>PDFs subidos</h1> : ""}
-                                    {pdfUrls.map((url, index) => (
-                                        <div key={index} className="pdf-container">
-                                            <embed
-                                                src={url}
-                                                width="100%"
-                                                height="500px"
-                                                type="application/pdf"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+            <button type="button" onClick={() => setFormulario({
+              ...formulario,
+              nueva_revision: {
+                persona: '',
+                tipo_revision: '',
+                observacion: '',
+                revision_resuelta: false
+              }
+            })}>
+              ➕ Agregar Observación
+            </button>
+
+            {formulario.nueva_revision && (
+              <div className="bloque-observacion">
+                <label>Persona que registra:</label>
+                <input
+                  type="text"
+                  value={formulario.nueva_revision.persona}
+                  onChange={(e) =>
+                    setFormulario({
+                      ...formulario,
+                      nueva_revision: {
+                        ...formulario.nueva_revision,
+                        persona: e.target.value
+                      }
+                    })
+                  }
+                />
+
+                <label>Tipo de observación:</label>
+                <input
+                  type="text"
+                  value={formulario.nueva_revision.tipo_revision}
+                  onChange={(e) =>
+                    setFormulario({
+                      ...formulario,
+                      nueva_revision: {
+                        ...formulario.nueva_revision,
+                        tipo_revision: e.target.value
+                      }
+                    })
+                  }
+                />
+
+                <label>Observación:</label>
+                <textarea
+                  value={formulario.nueva_revision.observacion}
+                  onChange={(e) =>
+                    setFormulario({
+                      ...formulario,
+                      nueva_revision: {
+                        ...formulario.nueva_revision,
+                        observacion: e.target.value
+                      }
+                    })
+                  }
+                />
+
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formulario.nueva_revision.revision_resuelta}
+                    onChange={(e) =>
+                      setFormulario({
+                        ...formulario,
+                        nueva_revision: {
+                          ...formulario.nueva_revision,
+                          revision_resuelta: e.target.checked
+                        }
+                      })
+                    }
+                  />
+                  ¿Revisión resuelta?
+                </label>
+              </div>
+            )}
+
+            <strong id='saved_text'>{saved === 'saved' ? 'Fotografia actualizada correctamente' : ''}</strong>
+            <strong id="error_text">{saved === 'error' ? 'No se ha registrado la foto ' : ''}</strong>
+
+            <div className="progress-bar">
+              <div className="progress" style={{ width: `${loadingProgress}%` }}></div>
+              <p className="progress-text">{loadingProgress}%</p>
+            </div>
+            <div className='mensajes_peticiones'>
+              {mensajes.mensaje1 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion1 === 'success' ? 'Información registrada correctamente' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion1 === 'error' ? 'Error al registrar en base de datos' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p>{mensajes.mensaje1}</p>
+                </div>
+                : ""}
+              {mensajes.mensaje2 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion2 === 'success' ? 'Foto subida al servidor Node' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion2 === 'error' ? 'Error al registrar en el servidor node' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p> {mensajes.mensaje2}</p>
+                </div>
+                : ""}
+              {mensajes.mensaje3 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion3 === 'success' ? 'Foto subida correctamente a Drive' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion3 === 'error' ? 'Error al subir foto a Drive' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p>{mensajes.mensaje3}</p>
+                </div>
+                : ""}
+              {mensajes.mensaje4 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion4 === 'success' ? 'PDFs subida correctamente a Drive' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion4 === 'error' ? 'Error al subir pdf a Drive' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p> {mensajes.mensaje4}</p>
+                </div>
+                : ""}
+            </div>
+            <div className="images-preview">
+
+
+
+              {/* Verifica la estructura de fotografia.images */}
+              {fotografia.images && fotografia.images.map((image, index) => (
+                <div className="image-preview">
+                  <div className='marco2'>
+                    <img
+                      key={index}
+                      src={`https://backend-prueba-apel.onrender.com/imagenes/libros/${image.nombre}`}
+                      alt={`${image.nombre}`}
+                      className='fotografia-img-large'
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {pdfUrls.length > 0 && (
+              <div className="pdf-preview">
+                {pdfUrls[0] ? <h1>PDFs subidos</h1> : ""}
+                {pdfUrls.map((url, index) => (
+                  <div key={index} className="pdf-container">
+                    <embed
+                      src={url}
+                      width="100%"
+                      height="500px"
+                      type="application/pdf"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="progress-bar">
+              <div className="progress" style={{ width: `${loadingProgress}%` }}></div>
+              <p className="progress-text">{loadingProgress}%</p>
+            </div>
+            <div className='mensajes_peticiones'>
+              {mensajes.mensaje1 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion1 === 'success' ? 'Información registrada correctamente' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion1 === 'error' ? 'Error al registrar en base de datos' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p>{mensajes.mensaje1}</p>
+                </div>
+                : ""}
+              {mensajes.mensaje2 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion2 === 'success' ? 'Foto subida al servidor Node' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion2 === 'error' ? 'Error al registrar en el servidor node' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p> {mensajes.mensaje2}</p>
+                </div>
+                : ""}
+              {mensajes.mensaje3 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion3 === 'success' ? 'Foto subida correctamente a Drive' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion3 === 'error' ? 'Error al subir foto a Drive' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p>{mensajes.mensaje3}</p>
+                </div>
+                : ""}
+              {mensajes.mensaje4 ?
+                <div className='mensajes'>
+                  <strong id='saved_text'>{statuses.peticion4 === 'success' ? 'PDFs subida correctamente a Drive' : ''}</strong>
+                  <strong id='error_text'>{statuses.peticion4 === 'error' ? 'Error al subir pdf a Drive' : ''}</strong>
+                  <h4>Mensaje:</h4>
+                  <p> {mensajes.mensaje4}</p>
+                </div>
+                : ""}
+            </div>
+            <div className="images-preview">
+
+
+
+              {/* Verifica la estructura de fotografia.images */}
+              {fotografia.images && fotografia.images.map((image, index) => (
+                <div className="image-preview">
+                  <div className='marco2'>
+                    <img
+                      key={index}
+                      src={`https://backend-prueba-apel.onrender.com/imagenes/libros/${image.nombre}`}
+                      alt={`${image.nombre}`}
+                      className='fotografia-img-large'
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {pdfUrls.length > 0 && (
+              <div className="pdf-preview">
+                {pdfUrls[0] ? <h1>PDFs subidos</h1> : ""}
+                {pdfUrls.map((url, index) => (
+                  <div key={index} className="pdf-container">
+                    <embed
+                      src={url}
+                      width="100%"
+                      height="500px"
+                      type="application/pdf"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </form>
-         
-    
+
+
         </div>
       </main>
-      <div className={`modal ${showModal ? 'show' : ''}`}>
-                <div className="modal-content">
-                    <h2>Edita el prompt</h2>
-                   <div className='contenido_editar_prompt'>
-                                <div className="image-preview_editar_prompt">
-                                    <div className='marco2'>
-                                        <img src={selectedImages[0]} />
-                                    </div>
-                                </div>
-                    <div className='textarea_editar_prompt'>
-                    <textarea 
-                        value={customPromptText}
-                        onChange={(e) => setCustomPromptText(e.target.value)}
-                    />
-                    </div>
-                    <div className="modal-buttons">
-                        <button onClick={handleModalSubmit}>Aceptar</button>
-                        <button onClick={() => setShowModal(false)}>Cancelar</button>
-                    </div>
-                    </div>
-                </div>
-
-
-            </div>
+      
     </div>
   );
 };

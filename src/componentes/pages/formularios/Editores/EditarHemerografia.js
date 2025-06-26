@@ -4,36 +4,46 @@ import { Api } from '../../../../hooks/Api';
 import React, { useEffect, useState } from 'react';
 
 export const EditarHemerografia = () => {
-  const { formulario, enviado, cambiado, resetFormulario, setFormulario } = useForm({});
-  const [resultado, setResultado] = useState(false);
-  const [fileName, setFileName] = useState('');
+  const { formulario, enviado, cambiado, resetFormulario, setFormulario } = useForm({})
+  //----------------------------------Paises, ciudades e instituciones ----------------------------------//
+  const [data, setData] = useState(null);
   const [paises, setPaises] = useState([]);
   const [ciudades, setCiudades] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
   const [selectedPais, setSelectedPais] = useState('');
   const [selectedCiudad, setSelectedCiudad] = useState('');
-  const [saved, setSaved] = useState('not sended');
-  const { id } = useParams();
-  const [fotografia, setFotografia] = useState({});
-  const [data, setData] = useState(null);
-  const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
-  const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [showModal, setShowModal] = useState(false);
-  const [customPromptText, setCustomPromptText] = useState('');
-  const [currentField, setCurrentField] = useState('');
-  const [originalPrompt, setOriginalPrompt] = useState('');
+  //----------------------------------Formulario y sugerencias ----------------------------------//
   const [selectedImages, setSelectedImages] = useState([]);
   const [pdfUrls, setPdfUrls] = useState([]);
   const [value, setValue] = useState('');
   const [sugerencias, setSugerencias] = useState([]);
   const [fieldName, setFieldName] = useState('');
+  //----------------------------------ChatGPT ----------------------------------//
+  const [showModal, setShowModal] = useState(false);
+  const [customPromptText, setCustomPromptText] = useState('');
+  const [currentField, setCurrentField] = useState('');
+  const [originalPrompt, setOriginalPrompt] = useState('');
+  //----------------------------------Guardar y enviar ----------------------------------//
+  const [resultado, setResultado] = useState(false)
+  const [fileName, setFileName] = useState('');
+  const [saved, setSaved] = useState('not sended');
+  const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
+  const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  //----------------------------------Observaciones y obtener registro ----------------------------------//
+  const { id } = useParams();
+  const [fotografia, setFotografia] = useState({});
   const [mostrarObservacion, setMostrarObservacion] = useState(false);
   const [nuevaObservacion, setNuevaObservacion] = useState({
-  persona: "",
-  tipo_revision: "",
-  observacion: ""
-});
+    persona: "",
+    tipo_revision: "",
+    observacion: ""
+  });
+
+
+
+  // Este useEffect se encarga de obtener los datos de las instituciones para la parte final del formulario
+  // Se hace la peticion la la API y se guardan los datos en data y el primer cammpo en los paises para su seleccion ene l formulario
   useEffect(() => {
     const fetchData = async () => {
       const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
@@ -47,7 +57,7 @@ export const EditarHemerografia = () => {
           setPaises(Object.keys(result.data));
         } else {
           // Manejo de error
-          console.error("Error al obtener los datos", result.message);
+          console.error("Error al obtener los datos", result.mesage);
         }
       } catch (error) {
         console.error("Error al realizar la petición", error);
@@ -55,62 +65,29 @@ export const EditarHemerografia = () => {
     };
     fetchData();
   }, []);
+  // Al modificar el campo pais, se actualizan las ciudades y se selecciona la primera si solo hay una
   useEffect(() => {
-    setSaved("")
-    setLoadingProgress(0);
-    setStatuses({
-      peticion1: '',
-      peticion2: '',
-      peticion3: '',
-      peticion4: ""
-    });
-    setMensajes({
-      mensaje1: '',
-      mensaje2: '',
-      mensaje3: '',
-      mensaje4: ''
-    });
-  }, [formulario])
-  useEffect(() => {
-    const fetchFoto = async () => {
-      const url = `https://backend-prueba-apel.onrender.com/api/hemerografia/hemero/${id}`;
-      const peticion = await fetch(url, {
-        method: "GET"
-      });
 
-      let datos = await peticion.json();
-      if (datos.status === "success") {
-        setFotografia(datos.hemero);
-      } else {
-        // Manejo de error
-      }
-    };
-    fetchFoto();
     if (formulario.pais) {
       const ciudades = Object.keys(data[formulario.pais]);
       setCiudades(ciudades);
-      setSaved("");
       if (ciudades.length === 1) {
         setSelectedCiudad(ciudades[0]);
+
       } else {
         setSelectedCiudad('');
         setInstituciones([]);
       }
     }
-  }, [formulario.pais, id]);
-
+  }, [formulario.pais]);
+  // Una vez seleccionado el pais y la ciudad, se cargan las instituciones correspondientes a la ciudad
   useEffect(() => {
     if (formulario.ciudad && formulario.pais) {
       const instituciones = data[formulario.pais][formulario.ciudad];
       setInstituciones(instituciones);
     }
   }, [formulario.ciudad]);
-  useEffect(() => {
-    return () => {
-      // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
-      pdfUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [pdfUrls]);
+  // Obtiene las sugerencias de autocompletado desde la API cuando el valor del input cambia y tiene mas de 1 caracter
   useEffect(() => {
     if (value.length > 1 && fieldName) {
       const fetchSugerencias = async () => {
@@ -131,6 +108,59 @@ export const EditarHemerografia = () => {
       setSugerencias([]);
     }
   }, [value, fieldName]);
+  // NO se que hace
+  useEffect(() => {
+    return () => {
+      // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
+      pdfUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [pdfUrls]);
+  // Aqui manejamos el estado del formlario, reiniciamos la barra de progreso y los mensajes de error dependiendo de cada peticion
+  useEffect(() => {
+    setSaved("")
+    setLoadingProgress(0);
+    setStatuses({
+      peticion1: '',
+      peticion2: '',
+      peticion3: '',
+      peticion4: ""
+    });
+    setMensajes({
+      mensaje1: '',
+      mensaje2: '',
+      mensaje3: '',
+      mensaje4: ''
+    });
+  }, [formulario])
+  // Aqui obtenemos los datos de la fotografia a editar
+  useEffect(() => {
+    const fetchFoto = async () => {
+      const url = `https://backend-prueba-apel.onrender.com/api/hemerografia/hemero/${id}`;
+      const peticion = await fetch(url, {
+        method: "GET"
+      });
+
+      let datos = await peticion.json();
+      if (datos.status === "success") {
+        setFotografia(datos.hemero);
+
+      } else {
+        // Manejo de error
+      }
+    };
+    fetchFoto();
+    if (formulario.pais) {
+      const ciudades = Object.keys(data[formulario.pais]);
+      setCiudades(ciudades);
+      setSaved("");
+      if (ciudades.length === 1) {
+        setSelectedCiudad(ciudades[0]);
+      } else {
+        setSelectedCiudad('');
+        setInstituciones([]);
+      }
+    }
+  }, [formulario.pais, id]);
 
   const handleSelect = (sugerencia) => {
 
@@ -162,116 +192,71 @@ export const EditarHemerografia = () => {
 
   };
   const guardar_foto = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  let nueva_foto = { ...formulario }; // Clonamos el formulario para evitar modificar el estado directamente
-  const revisionesAnteriores = fotografia.revisiones || [];
+    let nueva_foto = { ...formulario }; // Clonamos el formulario para evitar modificar el estado directamente
+    const revisionesAnteriores = fotografia.revisiones || [];
 
-  // Si se agregó una nueva observación (revisión)
-  if (formulario.nueva_revision &&
+    // Si se agregó una nueva observación (revisión)
+    if (formulario.nueva_revision &&
       formulario.nueva_revision.persona &&
       formulario.nueva_revision.tipo_revision &&
       formulario.nueva_revision.observacion
-  ) {
-    const nuevaRevision = {
-      persona: formulario.nueva_revision.persona,
-      fecha: new Date().toISOString(),
-      tipo_revision: formulario.nueva_revision.tipo_revision,
-      observacion: formulario.nueva_revision.observacion,
-      revision_resuelta: formulario.nueva_revision.revision_resuelta || false
-    };
+    ) {
+      const nuevaRevision = {
+        persona: formulario.nueva_revision.persona,
+        fecha: new Date().toISOString(),
+        tipo_revision: formulario.nueva_revision.tipo_revision,
+        observacion: formulario.nueva_revision.observacion,
+        revision_resuelta: formulario.nueva_revision.revision_resuelta || false
+      };
 
-    // Combinar revisiones
-    nueva_foto.revisiones = [...revisionesAnteriores, nuevaRevision];
-  } else {
-    // Si no hay nueva revisión, conservar las anteriores
-    nueva_foto.revisiones = revisionesAnteriores;
-  }
-
-  const { datos, cargando } = await Api(`http://localhost:3900/api/hemerografia/editar/${id}`, "PUT", nueva_foto);
-  setLoadingProgress(25);
-  setStatuses(prev => ({ ...prev, peticion1: datos.status }));
-  setMensajes(prev => ({ ...prev, mensaje1: datos.message }));
-
-  if (datos.status === "success") {
-    setSaved("saved");
-
-    // Subida de imágenes
-    const fileInput = document.querySelector("#file");
-    const formData = new FormData();
-    Array.from(fileInput.files).forEach((file) => {
-      formData.append("files", file);
-    });
-
-    const subida2 = await Api(`http://localhost:3900/api/hemerografia/editar-imagen/${id}`, "POST", formData, true);
-    setLoadingProgress(50);
-    setStatuses(prev => ({ ...prev, peticion2: subida2.datos.status }));
-    setMensajes(prev => ({ ...prev, mensaje2: subida2.datos.message }));
-
-    // Subida de PDFs
-    const pdfInput = document.querySelector("#pdf");
-    const pdfFormData = new FormData();
-    Array.from(pdfInput.files).forEach((file) => {
-      pdfFormData.append("pdfs", file);
-    });
-
-    const pdfSubida2 = await Api(`http://localhost:3900/api/hemerografia/editar-pdfs/${id}`, "POST", pdfFormData, true);
-    setLoadingProgress(100);
-    setStatuses(prev => ({ ...prev, peticion4: pdfSubida2.datos.status }));
-    setMensajes(prev => ({ ...prev, mensaje4: pdfSubida2.datos.message }));
-
-    setResultado(true);
-    setSaved("saved");
-  } else {
-    setSaved("error");
-  }
-  };
-  const handleAutoComplete = async (field, promptId) => {
-    const fileInput = document.querySelector("#file");
-    if (fileInput.files.length > 0) {
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-
-      const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-      if (datos && datos.message) {
-        cambiado({ target: { name: field, value: datos.message } });
-      }
+      // Combinar revisiones
+      nueva_foto.revisiones = [...revisionesAnteriores, nuevaRevision];
     } else {
-      alert("Por favor selecciona una imagen primero.");
+      // Si no hay nueva revisión, conservar las anteriores
+      nueva_foto.revisiones = revisionesAnteriores;
+    }
+
+    const { datos, cargando } = await Api(`http://localhost:3900/api/hemerografia/editar/${id}`, "PUT", nueva_foto);
+    setLoadingProgress(25);
+    setStatuses(prev => ({ ...prev, peticion1: datos.status }));
+    setMensajes(prev => ({ ...prev, mensaje1: datos.message }));
+
+    if (datos.status === "success") {
+      setSaved("saved");
+
+      // Subida de imágenes
+      const fileInput = document.querySelector("#file");
+      const formData = new FormData();
+      Array.from(fileInput.files).forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const subida2 = await Api(`http://localhost:3900/api/hemerografia/editar-imagen/${id}`, "POST", formData, true);
+      setLoadingProgress(50);
+      setStatuses(prev => ({ ...prev, peticion2: subida2.datos.status }));
+      setMensajes(prev => ({ ...prev, mensaje2: subida2.datos.message }));
+
+      // Subida de PDFs
+      const pdfInput = document.querySelector("#pdf");
+      const pdfFormData = new FormData();
+      Array.from(pdfInput.files).forEach((file) => {
+        pdfFormData.append("pdfs", file);
+      });
+
+      const pdfSubida2 = await Api(`http://localhost:3900/api/hemerografia/editar-pdfs/${id}`, "POST", pdfFormData, true);
+      setLoadingProgress(100);
+      setStatuses(prev => ({ ...prev, peticion4: pdfSubida2.datos.status }));
+      setMensajes(prev => ({ ...prev, mensaje4: pdfSubida2.datos.message }));
+
+      setResultado(true);
+      setSaved("saved");
+    } else {
+      setSaved("error");
     }
   };
-  const handleAutoCompleteSelect = async (field, promptId) => {
-    const fileInput = document.querySelector("#file");
-    if (fileInput.files.length > 0) {
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
 
-      const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-      if (datos && datos.message) {
-        // Validar que el mensaje sea una opción válida del select
-        const opcionesValidas = ['notas', 'articulos', 'cronicas', 'frases', 'poesia', 'pendiente', 'noticias', 'cuento'];
-        const generoSugerido = datos.message.toLowerCase();
-
-        if (opcionesValidas.includes(generoSugerido)) {
-          cambiado({ target: { name: field, value: datos.message } });
-        } else {
-          alert("El género sugerido no es válido para este campo.");
-        }
-      }
-    } else {
-      alert("Por favor selecciona una imagen primero.");
-    }
-  };
-  const handleEditPromptAndAutoComplete = async (field, prompt) => {
-    setCurrentField(field);
-    setOriginalPrompt(prompt);
-    setCustomPromptText(prompt);
-    setShowModal(true);
-  };
-  const handleModalSubmit = () => {
-    handleAutoComplete(currentField, customPromptText);
-    setShowModal(false);
-  };
   const handleImageChange = (e) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files).map((file) => URL.createObjectURL(file));
@@ -287,48 +272,48 @@ export const EditarHemerografia = () => {
     setPdfUrls(prevPdfUrls => [...prevPdfUrls, ...newPdfUrls]); // Agrega las nuevas URLs al estado existente
   };
   const toggleRevisionResuelta = (index) => {
-  const nuevasRevisiones = [...(fotografia.revisiones || [])];
-  nuevasRevisiones[index].revision_resuelta = !nuevasRevisiones[index].revision_resuelta;
+    const nuevasRevisiones = [...(fotografia.revisiones || [])];
+    nuevasRevisiones[index].revision_resuelta = !nuevasRevisiones[index].revision_resuelta;
 
-  setFotografia(prev => ({
-    ...prev,
-    revisiones: nuevasRevisiones
-  }));
+    setFotografia(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
 
-  setFormulario(prev => ({
-    ...prev,
-    revisiones: nuevasRevisiones
-  }));
-};
-// Función para editar el texto de observación
-const actualizarObservacion = (index, nuevoTexto) => {
-  const nuevasRevisiones = [...(fotografia.revisiones || [])];
-  nuevasRevisiones[index].observacion = nuevoTexto;
+    setFormulario(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+  };
+  // Función para editar el texto de observación
+  const actualizarObservacion = (index, nuevoTexto) => {
+    const nuevasRevisiones = [...(fotografia.revisiones || [])];
+    nuevasRevisiones[index].observacion = nuevoTexto;
 
-  setFotografia(prev => ({
-    ...prev,
-    revisiones: nuevasRevisiones
-  }));
+    setFotografia(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
 
-  setFormulario(prev => ({
-    ...prev,
-    revisiones: nuevasRevisiones
-  }));
-};
-const eliminarRevision = (index) => {
-  const nuevasRevisiones = [...(fotografia.revisiones || [])];
-  nuevasRevisiones.splice(index, 1); // Elimina la revisión en ese índice
+    setFormulario(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+  };
+  const eliminarRevision = (index) => {
+    const nuevasRevisiones = [...(fotografia.revisiones || [])];
+    nuevasRevisiones.splice(index, 1); // Elimina la revisión en ese índice
 
-  setFotografia(prev => ({
-    ...prev,
-    revisiones: nuevasRevisiones
-  }));
+    setFotografia(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
 
-  setFormulario(prev => ({
-    ...prev,
-    revisiones: nuevasRevisiones
-  }));
-};
+    setFormulario(prev => ({
+      ...prev,
+      revisiones: nuevasRevisiones
+    }));
+  };
 
   return (
     <div>
@@ -341,10 +326,7 @@ const eliminarRevision = (index) => {
             <div className='divisor_form_hemerografia_1'>
               <div className="form-group" id="periodico_hemerografia">
                 <label htmlFor="nombrePeriodico">Periódico:</label>
-                <div className='botonesIA'>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('nombre_periodico', 'Dame el nombre de este periódico, solo contesta con el nombre')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png' onClick={() => handleEditPromptAndAutoComplete('nombre_periodico', 'Dame el nombre de este periódico, solo contesta con el nombre')}></img>
-                </div>
+
                 <input
                   type="text"
                   name="nombre_periodico"
@@ -403,12 +385,7 @@ const eliminarRevision = (index) => {
               </div>
               <div className="form-group" id='encabezado_hemerografia'>
                 <label>Encabezado:</label>
-                <div className='botonesIA'>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('encabezado', 'Dame el encabezado de este periodico, solo contesta con el encabezado sin saltos de linea')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png   ' onClick={() => handleEditPromptAndAutoComplete('encabezado', 'Dame el encabezado de este periodico, solo contesta con el encabezado sin saltos de linea')}></img>
 
-
-                </div>
                 <input type="text" name="encabezado" placeholder="Encabezado" defaultValue={fotografia.encabezado || ''} onChange={cambiado} />
 
               </div>
@@ -418,14 +395,7 @@ const eliminarRevision = (index) => {
               </div>
               <div className="form-group" id='seudonimo_hemerografia'>
                 <label htmlFor="nombreSeudonimos">Seudónimo:</label>
-                <div className='botonesIA'>
 
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoCompleteSelect('seudonimos', 'De los siguientes seudónimos dime cuál está en el periódico:Amado Nervo, Román, Rip-Rip, Tricio, Benedictus, Joie, Versión española de Amado Nervo, X.Y.Z, Quirino Ordaz, Triplex., solo contesta con el género sin punto')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('seudonimos', 'De los siguientes seudónimos dime cuál está en el periódico:Amado Nervo, Román, Rip-Rip, Tricio, Benedictus, Joie, Versión española de Amado Nervo, X.Y.Z, Quirino Ordaz, Triplex., solo contesta con el género sin punto')}></img>
-
-
-
-                </div>
                 <input
                   type='text'
                   id="nombreSeudonimos"
@@ -450,10 +420,7 @@ const eliminarRevision = (index) => {
               </div>
               <div className="form-group" id='seccion_hemerografia'>
                 <label>Sección:</label>
-                <div className='botonesIA'>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoCompleteSelect('seccion', 'Busca si en este periodico hay alguna de estas secciones:Fuegos Fatuos, Pimientos dulces, Página literaria, Literatura, Actualidades europeas, Asuntos femeninos, Actualidades literarias, Actualidades madrileñas, La varita de la virtud, Desde parís, Desde Madrid, Actualidades, Actualidades españolas, Plaso ibañes, "El Imparcial", De Amado Nervo, La literatura maravillosa, Crónicas frívolas, Literatura nacional, Sociales, Poesía, Literaria, solo contesta con la seccion sin punto')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('seccion', 'Busca si en este periodico hay alguna de estas secciones:Fuegos Fatuos, Pimientos dulces, Página literaria, Literatura, Actualidades europeas, Asuntos femeninos, Actualidades literarias, Actualidades madrileñas, La varita de la virtud, Desde parís, Desde Madrid, Actualidades, Actualidades españolas, Plaso ibañes, "El Imparcial", De Amado Nervo, La literatura maravillosa, Crónicas frívolas, Literatura nacional, Sociales, Poesía, Literaria, solo contesta con la seccion sin punto')}></img>
-                </div>
+
                 <input
                   type='text'
                   id="generoPeriodistico"
@@ -532,14 +499,7 @@ const eliminarRevision = (index) => {
               </div>
               <div className="form-group" id='genero_hemerografia'>
                 <label>Género periodístico:</label>
-                <div className='botonesIA'>
 
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoCompleteSelect('genero_periodistico', 'De los siguientes géneros dime cuál es más probable que sea el del periódico: notas, artículos, crónicas, frases, poesía, noticias, solo contesta con el género sin punto')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('nombre_periodico', 'De los siguientes géneros dime cuál es más probable que sea el del periódico: notas, artículos, crónicas, frases, poesía, noticias, solo contesta con el género sin punto')}></img>
-
-
-
-                </div>
                 <input
                   type='text'
                   id="generoPeriodistico"
@@ -620,11 +580,7 @@ const eliminarRevision = (index) => {
               <div className="form-group" id="resumen_hemerografia">
                 <p id='resumen_hemerografia_p'>Resumen:</p>
 
-                <div className='botonesIA_resumen_hemerografia'>
 
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                </div>
 
                 <textarea
                   type="text"
@@ -649,14 +605,7 @@ const eliminarRevision = (index) => {
               <div className='divisor_form'>
                 <div className="form-group" id="transcripcion_hemerografia">
                   <p>Transcripciòn</p>
-                  <div className='botonesIA_resumen_hemerografia'>
 
-                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-
-
-
-                  </div>
                   <textarea
                     type="text"
                     id="transcripcionInput2"
@@ -843,115 +792,115 @@ const eliminarRevision = (index) => {
 
             <button className="button" onClick={guardar_foto}>Enviar</button>
 
-        
-  <h3>Historial de Revisiones</h3>
-{(fotografia.revisiones || []).map((rev, index) => (
-  <div key={index} className="revision-item">
-    <p><strong>Persona:</strong> {rev.persona}</p>
-    <p><strong>Fecha:</strong> {new Date(rev.fecha).toLocaleString()}</p>
-    <p><strong>Tipo:</strong> {rev.tipo_revision}</p>
 
-    <label>
-      <strong>Observación:</strong>
-      <textarea
-        value={rev.observacion}
-        onChange={(e) => actualizarObservacion(index, e.target.value)}
-      />
-    </label>
+            <h3>Historial de Revisiones</h3>
+            {(fotografia.revisiones || []).map((rev, index) => (
+              <div key={index} className="revision-item">
+                <p><strong>Persona:</strong> {rev.persona}</p>
+                <p><strong>Fecha:</strong> {new Date(rev.fecha).toLocaleString()}</p>
+                <p><strong>Tipo:</strong> {rev.tipo_revision}</p>
 
-    <label>
-      <input
-        type="checkbox"
-        checked={rev.revision_resuelta}
-        onChange={() => toggleRevisionResuelta(index)}
-      />
-      Resuelta
-    </label>
+                <label>
+                  <strong>Observación:</strong>
+                  <textarea
+                    value={rev.observacion}
+                    onChange={(e) => actualizarObservacion(index, e.target.value)}
+                  />
+                </label>
 
-    {/* 🗑️ Botón para eliminar revisión */}
-    <button type="button" onClick={() => eliminarRevision(index)} className="btn btn-danger">
-      Eliminar
-    </button>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={rev.revision_resuelta}
+                    onChange={() => toggleRevisionResuelta(index)}
+                  />
+                  Resuelta
+                </label>
 
-    <hr />
-  </div>
-))}
-<button type="button" onClick={() => setFormulario({
-  ...formulario,
-  nueva_revision: {
-    persona: '',
-    tipo_revision: '',
-    observacion: '',
-    revision_resuelta: false
-  }
-})}>
-  ➕ Agregar Observación
-</button>
+                {/* 🗑️ Botón para eliminar revisión */}
+                <button type="button" onClick={() => eliminarRevision(index)} className="btn btn-danger">
+                  Eliminar
+                </button>
 
-{formulario.nueva_revision && (
-  <div className="bloque-observacion">
-    <label>Persona que registra:</label>
-    <input
-      type="text"
-      value={formulario.nueva_revision.persona}
-      onChange={(e) =>
-        setFormulario({
-          ...formulario,
-          nueva_revision: {
-            ...formulario.nueva_revision,
-            persona: e.target.value
-          }
-        })
-      }
-    />
+                <hr />
+              </div>
+            ))}
+            <button type="button" onClick={() => setFormulario({
+              ...formulario,
+              nueva_revision: {
+                persona: '',
+                tipo_revision: '',
+                observacion: '',
+                revision_resuelta: false
+              }
+            })}>
+              ➕ Agregar Observación
+            </button>
 
-    <label>Tipo de observación:</label>
-    <input
-      type="text"
-      value={formulario.nueva_revision.tipo_revision}
-      onChange={(e) =>
-        setFormulario({
-          ...formulario,
-          nueva_revision: {
-            ...formulario.nueva_revision,
-            tipo_revision: e.target.value
-          }
-        })
-      }
-    />
+            {formulario.nueva_revision && (
+              <div className="bloque-observacion">
+                <label>Persona que registra:</label>
+                <input
+                  type="text"
+                  value={formulario.nueva_revision.persona}
+                  onChange={(e) =>
+                    setFormulario({
+                      ...formulario,
+                      nueva_revision: {
+                        ...formulario.nueva_revision,
+                        persona: e.target.value
+                      }
+                    })
+                  }
+                />
 
-    <label>Observación:</label>
-    <textarea
-      value={formulario.nueva_revision.observacion}
-      onChange={(e) =>
-        setFormulario({
-          ...formulario,
-          nueva_revision: {
-            ...formulario.nueva_revision,
-            observacion: e.target.value
-          }
-        })
-      }
-    />
+                <label>Tipo de observación:</label>
+                <input
+                  type="text"
+                  value={formulario.nueva_revision.tipo_revision}
+                  onChange={(e) =>
+                    setFormulario({
+                      ...formulario,
+                      nueva_revision: {
+                        ...formulario.nueva_revision,
+                        tipo_revision: e.target.value
+                      }
+                    })
+                  }
+                />
 
-    <label>
-      <input
-        type="checkbox"
-        checked={formulario.nueva_revision.revision_resuelta}
-        onChange={(e) =>
-          setFormulario({
-            ...formulario,
-            nueva_revision: {
-              ...formulario.nueva_revision,
-              revision_resuelta: e.target.checked
-            }
-          })
-        }
-      />
-      ¿Revisión resuelta?
-    </label>
-  </div>
-)}
+                <label>Observación:</label>
+                <textarea
+                  value={formulario.nueva_revision.observacion}
+                  onChange={(e) =>
+                    setFormulario({
+                      ...formulario,
+                      nueva_revision: {
+                        ...formulario.nueva_revision,
+                        observacion: e.target.value
+                      }
+                    })
+                  }
+                />
+
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formulario.nueva_revision.revision_resuelta}
+                    onChange={(e) =>
+                      setFormulario({
+                        ...formulario,
+                        nueva_revision: {
+                          ...formulario.nueva_revision,
+                          revision_resuelta: e.target.checked
+                        }
+                      })
+                    }
+                  />
+                  ¿Revisión resuelta?
+                </label>
+              </div>
+            )}
 
             <strong id='saved_text'>{saved === 'saved' ? 'Fotografia actualizada correctamente' : ''}</strong>
             <strong id="error_text">{saved === 'error' ? 'No se ha registrado la foto ' : ''}</strong>
@@ -1031,32 +980,7 @@ const eliminarRevision = (index) => {
           </form>
         </div>
       </main>
-      <div className={`modal ${showModal ? 'show' : ''}`}>
-        <div className="modal-content">
-          <h2>Edita el prompt</h2>
-          <div className='contenido_editar_prompt'>
-            <div className="image-preview_editar_prompt">
-              <div className='marco2'>
-                <img src={selectedImages[0]} />
-              </div>
-            </div>
-            <div className='textarea_editar_prompt'>
-              <textarea
-                value={customPromptText}
-                onChange={(e) => setCustomPromptText(e.target.value)}
-              />
-            </div>
-            <div className="modal-buttons">
-              <button onClick={handleModalSubmit}>Aceptar</button>
-              <button onClick={() => setShowModal(false)}>Cancelar</button>
-            </div>
-            
 
-          </div>
-        </div>
-
-
-      </div>
     </div>
   );
 };

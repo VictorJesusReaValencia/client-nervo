@@ -189,42 +189,6 @@ export const RegPartituras = () => {
             setSaved("error");
         }
     };
-    const handleAutoComplete = async (field, promptId) => {
-        const fileInput = document.querySelector("#file");
-        if (fileInput.files.length > 0) {
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-            if (datos && datos.message) {
-                cambiado({ target: { name: field, value: datos.message } });
-            }
-        } else {
-            alert("Por favor selecciona una imagen primero.");
-        }
-    };
-    const handleAutoCompleteSelect = async (field, promptId) => {
-        const fileInput = document.querySelector("#file");
-        if (fileInput.files.length > 0) {
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-            if (datos && datos.message) {
-                // Validar que el mensaje sea una opción válida del select
-                const opcionesValidas = ['notas', 'articulos', 'cronicas', 'frases', 'poesia', 'pendiente', 'noticias', 'cuento'];
-                const generoSugerido = datos.message.toLowerCase();
-
-                if (opcionesValidas.includes(generoSugerido)) {
-                    cambiado({ target: { name: field, value: datos.message } });
-                } else {
-                    alert("El género sugerido no es válido para este campo.");
-                }
-            }
-        } else {
-            alert("Por favor selecciona una imagen primero.");
-        }
-    };
     const handleImageChange = (e) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files).map((file) => URL.createObjectURL(file));

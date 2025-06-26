@@ -4,127 +4,161 @@ import { Api } from '../../../../hooks/Api';
 import React, { useEffect, useState } from 'react';
 
 export const EditarObjetos = () => {
-  const { formulario, enviado, cambiado, resetFormulario, setFormulario } = useForm({});
-  const [resultado, setResultado] = useState(false);
-  const [fileName, setFileName] = useState('');
+  const { formulario, enviado, cambiado, resetFormulario, setFormulario } = useForm({})
+  //----------------------------------Paises, ciudades e instituciones ----------------------------------//
+  const [data, setData] = useState(null);
   const [paises, setPaises] = useState([]);
   const [ciudades, setCiudades] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
   const [selectedPais, setSelectedPais] = useState('');
   const [selectedCiudad, setSelectedCiudad] = useState('');
-  const [saved, setSaved] = useState('not sended');
-  const { id } = useParams();
-  const [fotografia, setFotografia] = useState({});
-  const [data, setData] = useState(null);
-  const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
-  const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [showModal, setShowModal] = useState(false);
-  const [customPromptText, setCustomPromptText] = useState('');
-  const [currentField, setCurrentField] = useState('');
-  const [originalPrompt, setOriginalPrompt] = useState('');
+  //----------------------------------Formulario y sugerencias ----------------------------------//
   const [selectedImages, setSelectedImages] = useState([]);
   const [pdfUrls, setPdfUrls] = useState([]);
   const [value, setValue] = useState('');
   const [sugerencias, setSugerencias] = useState([]);
   const [fieldName, setFieldName] = useState('');
-  useEffect(() => {
-    const fetchData = async () => {
-      const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
-      try {
-        const response = await fetch(url, {
-          method: "GET"
-        });
-        const result = await response.json();
-        if (result.status === "success") {
-          setData(result.data);
-          setPaises(Object.keys(result.data));
-        } else {
-          // Manejo de error
-          console.error("Error al obtener los datos", result.message);
-        }
-      } catch (error) {
-        console.error("Error al realizar la petición", error);
-      }
-    };
-    fetchData();
-  }, []);
-  useEffect(() => {
-    setSaved("")
-    setLoadingProgress(0);
-    setStatuses({
-      peticion1: '',
-      peticion2: '',
-      peticion3: '',
-      peticion4: ""
-    });
-    setMensajes({
-      mensaje1: '',
-      mensaje2: '',
-      mensaje3: '',
-      mensaje4: ''
-    });
-  }, [formulario])
-  useEffect(() => {
-    const fetchFoto = async () => {
-      const url = `https://backend-prueba-apel.onrender.com/api/objetos/hemero/${id}`;
-      const peticion = await fetch(url, {
-        method: "GET"
-      });
+  //----------------------------------ChatGPT ----------------------------------//
+  const [showModal, setShowModal] = useState(false);
+  const [customPromptText, setCustomPromptText] = useState('');
+  const [currentField, setCurrentField] = useState('');
+  const [originalPrompt, setOriginalPrompt] = useState('');
+  //----------------------------------Guardar y enviar ----------------------------------//
+  const [resultado, setResultado] = useState(false)
+  const [fileName, setFileName] = useState('');
+  const [saved, setSaved] = useState('not sended');
+  const [statuses, setStatuses] = useState({ peticion1: '', peticion2: '', peticion3: '', peticion4: '' });
+  const [mensajes, setMensajes] = useState({ mensaje1: '', mensaje2: '', mensaje3: '', mensaje4: '' });
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  //----------------------------------Observaciones y obtener registro ----------------------------------//
+  const { id } = useParams();
+  const [fotografia, setFotografia] = useState({});
+  const [mostrarObservacion, setMostrarObservacion] = useState(false);
+  const [nuevaObservacion, setNuevaObservacion] = useState({
+    persona: "",
+    tipo_revision: "",
+    observacion: ""
+  });
 
-      let datos = await peticion.json();
-      if (datos.status === "success") {
-        setFotografia(datos.hemero);
-      } else {
-        // Manejo de error
-      }
-    };
-    fetchFoto();
-    if (formulario.pais) {
-      const ciudades = Object.keys(data[formulario.pais]);
-      setCiudades(ciudades);
-      setSaved("");
-      if (ciudades.length === 1) {
-        setSelectedCiudad(ciudades[0]);
-      } else {
-        setSelectedCiudad('');
-        setInstituciones([]);
-      }
-    }
-  }, [formulario.pais, id]);
-
-  useEffect(() => {
-    if (formulario.ciudad && formulario.pais) {
-      const instituciones = data[formulario.pais][formulario.ciudad];
-      setInstituciones(instituciones);
-    }
-  }, [formulario.ciudad]);
-  useEffect(() => {
-    return () => {
-      // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
-      pdfUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [pdfUrls]);
-  useEffect(() => {
-    if (value.length > 1 && fieldName) {
-      const fetchSugerencias = async () => {
+  // Este useEffect se encarga de obtener los datos de las instituciones para la parte final del formulario
+    // Se hace la peticion la la API y se guardan los datos en data y el primer cammpo en los paises para su seleccion ene l formulario
+    useEffect(() => {
+      const fetchData = async () => {
+        const url = `https://backend-prueba-apel.onrender.com/api/instituciones/listar/todo`;
         try {
-          const response = await fetch(`https://backend-prueba-apel.onrender.com/api/objetos/search?query=${value}&campo=${fieldName}`);
-          if (!response.ok) {
-            throw new Error('Error fetching suggestions');
+          const response = await fetch(url, {
+            method: "GET"
+          });
+          const result = await response.json();
+          if (result.status === "success") {
+            setData(result.data);
+            setPaises(Object.keys(result.data));
+          } else {
+            // Manejo de error
+            console.error("Error al obtener los datos", result.mesage);
           }
-          const data = await response.json();
-          setSugerencias(data);
-        } catch (err) {
-          console.error('Error fetching suggestions:', err);
+        } catch (error) {
+          console.error("Error al realizar la petición", error);
         }
       };
-
-      fetchSugerencias();
-    } else {
-      setSugerencias([]);
-    }
-  }, [value, fieldName]);
+      fetchData();
+    }, []);
+    // Al modificar el campo pais, se actualizan las ciudades y se selecciona la primera si solo hay una
+    useEffect(() => {
+  
+      if (formulario.pais) {
+        const ciudades = Object.keys(data[formulario.pais]);
+        setCiudades(ciudades);
+        if (ciudades.length === 1) {
+          setSelectedCiudad(ciudades[0]);
+  
+        } else {
+          setSelectedCiudad('');
+          setInstituciones([]);
+        }
+      }
+    }, [formulario.pais]);
+    // Una vez seleccionado el pais y la ciudad, se cargan las instituciones correspondientes a la ciudad
+    useEffect(() => {
+      if (formulario.ciudad && formulario.pais) {
+        const instituciones = data[formulario.pais][formulario.ciudad];
+        setInstituciones(instituciones);
+      }
+    }, [formulario.ciudad]);
+    // Obtiene las sugerencias de autocompletado desde la API cuando el valor del input cambia y tiene mas de 1 caracter
+    useEffect(() => {
+      if (value.length > 1 && fieldName) {
+        const fetchSugerencias = async () => {
+          try {
+            const response = await fetch(`https://backend-prueba-apel.onrender.com/api/objetos/search?query=${value}&campo=${fieldName}`);
+            if (!response.ok) {
+              throw new Error('Error fetching suggestions');
+            }
+            const data = await response.json();
+            setSugerencias(data);
+          } catch (err) {
+            console.error('Error fetching suggestions:', err);
+          }
+        };
+  
+        fetchSugerencias();
+      } else {
+        setSugerencias([]);
+      }
+    }, [value, fieldName]);
+    // NO se que hace
+    useEffect(() => {
+      return () => {
+        // Liberar URLs cuando el componente se desmonte o se cambien los PDFs
+        pdfUrls.forEach(url => URL.revokeObjectURL(url));
+      };
+    }, [pdfUrls]);
+    // Aqui manejamos el estado del formlario, reiniciamos la barra de progreso y los mensajes de error dependiendo de cada peticion
+    useEffect(() => {
+      setSaved("")
+      setLoadingProgress(0);
+      setStatuses({
+        peticion1: '',
+        peticion2: '',
+        peticion3: '',
+        peticion4: ""
+      });
+      setMensajes({
+        mensaje1: '',
+        mensaje2: '',
+        mensaje3: '',
+        mensaje4: ''
+      });
+    }, [formulario])
+    // Aqui obtenemos los datos de la fotografia a editar
+    useEffect(() => {
+      const fetchFoto = async () => {
+        const url = `https://backend-prueba-apel.onrender.com/api/objetos/obj/${id}`;
+        const peticion = await fetch(url, {
+          method: "GET"
+        });
+  
+        let datos = await peticion.json();
+        if (datos.status === "success") {
+          setFotografia(datos.hemero);
+  
+        } else {
+          // Manejo de error
+        }
+      };
+      fetchFoto();
+      if (formulario.pais) {
+        const ciudades = Object.keys(data[formulario.pais]);
+        setCiudades(ciudades);
+        setSaved("");
+        if (ciudades.length === 1) {
+          setSelectedCiudad(ciudades[0]);
+        } else {
+          setSelectedCiudad('');
+          setInstituciones([]);
+        }
+      }
+    }, [formulario.pais, id]);
 
   const handleSelect = (sugerencia) => {
 
@@ -199,52 +233,6 @@ export const EditarObjetos = () => {
       setSaved("error");
     }
   }
-  const handleAutoComplete = async (field, promptId) => {
-    const fileInput = document.querySelector("#file");
-    if (fileInput.files.length > 0) {
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-
-      const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-      if (datos && datos.message) {
-        cambiado({ target: { name: field, value: datos.message } });
-      }
-    } else {
-      alert("Por favor selecciona una imagen primero.");
-    }
-  };
-  const handleAutoCompleteSelect = async (field, promptId) => {
-    const fileInput = document.querySelector("#file");
-    if (fileInput.files.length > 0) {
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-
-      const { datos } = await Api(`http://localhost:3900/api/hemerografia/gpt/image-text/${promptId}`, "POST", formData, true);
-      if (datos && datos.message) {
-        // Validar que el mensaje sea una opción válida del select
-        const opcionesValidas = ['notas', 'articulos', 'cronicas', 'frases', 'poesia', 'pendiente', 'noticias', 'cuento'];
-        const generoSugerido = datos.message.toLowerCase();
-
-        if (opcionesValidas.includes(generoSugerido)) {
-          cambiado({ target: { name: field, value: datos.message } });
-        } else {
-          alert("El género sugerido no es válido para este campo.");
-        }
-      }
-    } else {
-      alert("Por favor selecciona una imagen primero.");
-    }
-  };
-  const handleEditPromptAndAutoComplete = async (field, prompt) => {
-    setCurrentField(field);
-    setOriginalPrompt(prompt);
-    setCustomPromptText(prompt);
-    setShowModal(true);
-  };
-  const handleModalSubmit = () => {
-    handleAutoComplete(currentField, customPromptText);
-    setShowModal(false);
-  };
   const handleImageChange = (e) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files).map((file) => URL.createObjectURL(file));
@@ -262,109 +250,92 @@ export const EditarObjetos = () => {
 
   return (
     <div>
-        <main className='main_registro_hemerografia'>
-            <div className='contenedor_registro_hemerografia'>
+      <main className='main_registro_hemerografia'>
+        <div className='contenedor_registro_hemerografia'>
 
-                <h1>Formulario de registro de Objetos</h1>
+          <h1>Formulario de registro de Objetos</h1>
 
 
-        
-                <form onSubmit={guardar_foto}>
-               
 
-                    <div className='divisor_form'>
-                    <div className="form-group" id='titulo_objetos'>
-                            <label>Título</label>
-                            <div className='botonesIA'>
-                                <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('nombre_periodico', 'Dame el nombre de este periódico, solo contesta con el nombre')}></img>
-                                <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png' onClick={() => handleEditPromptAndAutoComplete('nombre_periodico', 'Dame el nombre de este periódico, solo contesta con el nombre')}></img>
+          <form onSubmit={guardar_foto}>
 
-                            </div>
-                            <input id='encabezado' type="textarea" name="titulo" placeholder="Título" 
-                            defaultValue={fotografia.titulo|| ''} onChange={cambiado} />
-                        </div>
-                        <div className="form-group" id="numeroEdicion">
-                            <label htmlFor="numeroEdicion">Número de registro</label>
-                            <input
-                                type="number"
-                                id="numeroEdicionInput"
-                                name="numero_registro"
-                                defaultValue={fotografia.numero_registro || ''}
-                                onChange={cambiado}
-                            />
-                        </div>
-                        <div className="form-group" id="default_objetos">
-                            <label htmlFor="nombrePeriodico">Tipo de objetos</label>
-                            <input
-                                id="nombrePeriodicoSelect"
-                                type='text'
-                                name="tipo_objetos"
-                                value={formulario.tipo_objetos || fotografia.tipo_objetos}
-                                onChange={handleChange}
-                            >
-            
-                            </input>
-                            {(sugerencias.length > 0 && fieldName === "tipo_objetos") && (
-            <ul className="sugerencias-list">
-                {sugerencias.map((sugerencia, index) => (
-                    <li key={index} onClick={() => handleSelect(sugerencia)}>
+
+            <div className='divisor_form'>
+              <div className="form-group" id='titulo_objetos'>
+                <label>Título</label>
+                <input id='encabezado' type="textarea" name="titulo" placeholder="Título"
+                  defaultValue={fotografia.titulo || ''} onChange={cambiado} />
+              </div>
+              <div className="form-group" id="numeroEdicion">
+                <label htmlFor="numeroEdicion">Número de registro</label>
+                <input
+                  type="number"
+                  id="numeroEdicionInput"
+                  name="numero_registro"
+                  defaultValue={fotografia.numero_registro || ''}
+                  onChange={cambiado}
+                />
+              </div>
+              <div className="form-group" id="default_objetos">
+                <label htmlFor="nombrePeriodico">Tipo de objetos</label>
+                <input
+                  id="nombrePeriodicoSelect"
+                  type='text'
+                  name="tipo_objetos"
+                  value={formulario.tipo_objetos || fotografia.tipo_objetos}
+                  onChange={handleChange}
+                >
+
+                </input>
+                {(sugerencias.length > 0 && fieldName === "tipo_objetos") && (
+                  <ul className="sugerencias-list">
+                    {sugerencias.map((sugerencia, index) => (
+                      <li key={index} onClick={() => handleSelect(sugerencia)}>
                         {sugerencia}
-                    </li>
-                ))}
-            </ul>
-            )}
-                        </div>
-
-                        <div className="form-group" id='default_objetos'>
-                            <label>Descripción física :</label>
-                            <input type="text" className='autor' name="descripcion_fisica" placeholder="descripcion física" value={formulario.descripcion_fisica || ''} onChange={cambiado} />
-                        </div>
-                        
-                        <div className="form-group" id="default_objetos">
-                        <label id='fecha_publicacionLabel'>procedencia</label>
-                        <input
-                            type="text"
-                            name="procedencia"
-                            value={formulario.procedencia}
-                            onChange={cambiado}
-                        />
-                        </div>   
-
-                     
-
-                        
-
-                        
-                        
-                    </div>
-                       
-                    <div className='form-group' id='imagenes_hemerografia'>
-                <label htmlFor='file0'>Imágenes: </label>
-                <input type='file' onChange={handleImageChange} name='file0' id="file" multiple />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className="form-group" id='edicion_hemerografia'>
-                <label>Edición:</label>
-                <select id='hallazgo' name="edicion" defaultValue={fotografia.edicion || ''} onChange={cambiado}>
-                  <option value={fotografia.edicion}>{fotografia.edicion}</option>¨
-                  <option value="No">No</option>
-                  <option value="Sí">Sí</option>
-                </select>
+
+              <div className="form-group" id='default_objetos'>
+                <label>Descripción física :</label>
+                <input type="text" className='autor' name="descripcion_fisica" placeholder="descripcion física" value={formulario.descripcion_fisica || ''} onChange={cambiado} />
               </div>
-              <div className='form-group' id='pdf2'>
-                <label htmlFor='pdfs'>Pdfs: </label>
-                <input type='file' onChange={handlePDFChange} name='pdfs' id='pdf' multiple />
+
+              <div className="form-group" id="default_objetos">
+                <label id='fecha_publicacionLabel'>procedencia</label>
+                <input
+                  type="text"
+                  name="procedencia"
+                  value={formulario.procedencia}
+                  onChange={cambiado}
+                />
               </div>
-       
+            </div>
+
+            <div className='form-group' id='imagenes_hemerografia'>
+              <label htmlFor='file0'>Imágenes: </label>
+              <input type='file' onChange={handleImageChange} name='file0' id="file" multiple />
+            </div>
+            <div className="form-group" id='edicion_hemerografia'>
+              <label>Edición:</label>
+              <select id='hallazgo' name="edicion" defaultValue={fotografia.edicion || ''} onChange={cambiado}>
+                <option value={fotografia.edicion}>{fotografia.edicion}</option>¨
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+            <div className='form-group' id='pdf2'>
+              <label htmlFor='pdfs'>Pdfs: </label>
+              <input type='file' onChange={handlePDFChange} name='pdfs' id='pdf' multiple />
+            </div>
+
             <div className='divisor_form_hemerografia_3'>
 
               <div className="form-group" id="resumen_hemerografia">
                 <p id='resumen_hemerografia_p'>Resumen:</p>
 
-                <div className='botonesIA_resumen_hemerografia'>
-
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                  <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('resumen', 'Dame un resumen de este periódico')}></img>
-                </div>
 
                 <textarea
                   type="text"
@@ -389,14 +360,6 @@ export const EditarObjetos = () => {
               <div className='divisor_form'>
                 <div className="form-group" id="transcripcion_hemerografia">
                   <p>Transcripciòn</p>
-                  <div className='botonesIA_resumen_hemerografia'>
-
-                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/ai.png   ' onClick={() => handleAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-                    <img src='https://backend-prueba-apel.onrender.com/imagenes/general/chat-gpt.png ' onClick={() => handleEditPromptAndAutoComplete('transcripcion', 'Dame la transcripcion de este periodico')}></img>
-
-
-
-                  </div>
                   <textarea
                     type="text"
                     id="transcripcionInput2"
@@ -623,7 +586,7 @@ export const EditarObjetos = () => {
                 </div>
                 : ""}
             </div>
-            
+
             <div className="images-preview">
 
 
@@ -634,7 +597,7 @@ export const EditarObjetos = () => {
                   <div className='marco2'>
                     <img
                       key={index}
-                      src={`https://backend-prueba-apel.onrender.com/imagenes/hemerografia/${image.nombre}`}
+                      src={`https://backend-prueba-apel.onrender.com/imagenes/objetos/${image.nombre}`}
                       alt={`${image.nombre}`}
                       className='fotografia-img-large'
                     />
@@ -658,11 +621,11 @@ export const EditarObjetos = () => {
                 ))}
               </div>
             )}
-             
-          
-                </form>
-            </div>
-        </main>
+
+
+          </form>
+        </div>
+      </main>
     </div>
-)
+  )
 };
